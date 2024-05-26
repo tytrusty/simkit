@@ -1,0 +1,5 @@
+libigl
+polyscope
+numpy
+scipy
+matplotlib

@@ -1,5 +1,5 @@
 
-# PAL, the Physically-Based Animation Library
+# PAL: A Physically-Based Animation Library
 
 This library should be considered a toolbox for the development of physically-based animation research.
 It is designed to be modular, easy to use, and easy to extend.
@@ -13,14 +13,17 @@ We're working on a pip installation, but in the meantime, you can clone the repo
 git clone https://github.com/otmanon/pal.git
 ```
 
-Install the dependencies:
+Installation is recommended on a fresh conda directory:
+
+```
+conda create -n pal
+conda activate pal
+```
+
+Finally, install the dependencies:
 ```
 pip install -r requirements.txt
 ```
-
-
-
-
 
 
 

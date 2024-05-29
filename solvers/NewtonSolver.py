@@ -1,27 +1,44 @@
 import scipy as sp
+import numpy as np
 
 from .Solver import Solver, SolverParams
-
+from backtracking_line_search import backtracking_line_search
 
 
 class NewtonSolverParams(SolverParams):
-    def __init__(self, tolerance= 1e-6, max_iter = 100):
+    def __init__(self, tolerance= 1e-6, max_iter = 1, do_line_search = True):
         self.tolerance = tolerance
         self.max_iter = max_iter
+
+        self.do_line_search = do_line_search
         return
 
 class NewtonSolver(Solver):
 
-    def __init__(self, gradient_func, hessian_func):
+    def __init__(self, energy_func, gradient_func, hessian_func, p : NewtonSolverParams = NewtonSolverParams()):
+        self.p = p
+        self.energy_func = energy_func
         self.gradient_func = gradient_func
         self.hessian_func = hessian_func
         pass
 
 
     def solve(self, x):
-        g = self.gradient_func(x)
-        H = self.hessian_func(x)
 
-        dx = sp.linalg.solve(H, -g)
+        for i in range(self.p.max_iter):
 
-        return dx
+            g = self.gradient_func(x)
+            H = self.hessian_func(x)
+            dx = sp.linalg.solve(H, -g)
+
+            if self.p.do_line_search:
+                energy_func = lambda z: self.energy_func(z)
+                alpha, lx, ex = backtracking_line_search(energy_func, x, g, dx)
+            else:
+                alpha = 1.0
+
+            x += alpha * dx
+            if np.linalg.norm(g) < 1e-6:
+                break
+
+        return x

@@ -1,12 +1,30 @@
 import numpy as np
-
-from .Sim import Sim
-from .PinnedPendulumState import PinnedPendulumState
-
+from numpy import vstack, hstack
+from .Sim import  *
 from solvers import NewtonSolver, NewtonSolverParams
 
-class PinnedPendulumParams():
-    def __init__(self, m=1, l0=1, mu=1, g=0, gamma=1, y=np.array([[0], [-1]]), solver_p : NewtonSolverParams  = NewtonSolverParams()):
+
+
+class PinnedPendulumFEMState(SimState):
+
+    def __init__(self, x=None):
+        super().__init__()
+        if x is None:
+            self.x = np.array([[0], [-1.0]])
+        else:
+            self.x = x
+        return
+
+    def primary(self):
+        return self.x
+
+    def mixed(self):
+        return np.zeros((0, 1))
+
+
+class PinnedPendulumFEMParams():
+    def __init__(self, m=1, l0=1, mu=1, g=0, gamma=1, y=np.array([[0], [-1]]),
+                 solver_p : NewtonSolverParams  = NewtonSolverParams()):
         """
         Parameters of the pinned pendulum simulation
 
@@ -33,16 +51,16 @@ class PinnedPendulumParams():
         self.y = y
         self.solver_p = solver_p
         return
-class PinnedPendulum(Sim):
+class PinnedPendulumFEMSim(Sim):
 
-    def __init__(self, p : PinnedPendulumParams = PinnedPendulumParams()):
+    def __init__(self, p : PinnedPendulumFEMParams = PinnedPendulumFEMParams()):
         """
         A simulation of an elastic pinned pendulum, which is modelled as a spring of rest length l0 and stiffness mu with one endpoint fixed at (0, 0), and the other
         end point of mass m free to move in 2D space. The pendulum is subject to gravity g, and is attracted to a target point y with attractive force gamma.
 
         Parameters
         ----------
-        p : PinnedPendulumParams
+        p : PinnedPendulumFEMParams
             Parameters of the pinned pendulum system
         """
         self.p = p
@@ -50,8 +68,12 @@ class PinnedPendulum(Sim):
         # should also build the solver parameters
         if isinstance(p.solver_p, NewtonSolverParams):
             self.solver = NewtonSolver(self.energy, self.gradient, self.hessian, p.solver_p)
-
+        else:
+            # print error message and terminate programme
+            assert(False, "Error: solver_p of type " + str(type(p.solver_p)) +
+                          " is not a valid instance of NewtonSolverParams. Exiting.")
         return
+
 
     def energy(self, x : np.ndarray):
         """
@@ -138,24 +160,24 @@ class PinnedPendulum(Sim):
         return x
 
 
-    def step_sim(self, state : PinnedPendulumState = PinnedPendulumState()):
+    def step_sim(self, state : PinnedPendulumFEMState = PinnedPendulumFEMState()):
         """
         Steps the simulation forward in time.
 
         Parameters
         ----------
 
-        state : PinnedPendulumState
+        state : PinnedPendulumFEMState
             state of the pinned pendulum system
 
         Returns
         ------
-        state : PinnedPendulumState
+        state : PinnedPendulumFEMState
             next state of the pinned pendulum system
 
         """
         x = self.step(state.x)
-        state = PinnedPendulumState(x)
+        state = PinnedPendulumFEMState(x)
         return state
 
 

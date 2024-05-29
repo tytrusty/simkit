@@ -1,4 +1,4 @@
 from .Sim import Sim
 
-from .PinnedPendulum import PinnedPendulum, PinnedPendulumParams
-from .PinnedPendulumState import PinnedPendulumState
+from .PinnedPendulumFEM import PinnedPendulumFEMState, PinnedPendulumFEMParams, PinnedPendulumFEMSim
+from .PinnedPendulumMFEM import PinnedPendulumMFEMState, PinnedPendulumMFEMParams, PinnedPendulumMFEMSim

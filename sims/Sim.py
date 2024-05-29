@@ -1,4 +1,8 @@
-from .SimState import SimState
+
+class SimState():
+
+    def __init__(self):
+        pass
 
 
 class Sim():

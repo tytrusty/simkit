@@ -16,8 +16,8 @@ git clone --recursive https://github.com/otmanon/simkit.git
 Installation is recommended on a fresh conda directory:
 
 ```
-conda create -n pal
-conda activate pal
+conda create -n simkit
+conda activate simkit
 ```
 
 Finally, install the dependencies:

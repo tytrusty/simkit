@@ -1,8 +1,4 @@
-
-class SimState():
-
-    def __init__(self):
-        pass
+from ..sims.State import State
 
 
 class Sim():
@@ -10,8 +6,8 @@ class Sim():
         pass
 
 
-    def step(self, WorldState : SimState = SimState()):
-        return WorldState
+    def step(self, world_state : State = State()):
+        return world_state
 
     def stepp(self):
         return

@@ -2,7 +2,7 @@ import scipy as sp
 import numpy as np
 
 from .Solver import Solver, SolverParams
-from backtracking_line_search import backtracking_line_search
+from ..backtracking_line_search import backtracking_line_search
 
 
 class NewtonSolverParams(SolverParams):

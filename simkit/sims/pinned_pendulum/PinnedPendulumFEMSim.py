@@ -1,28 +1,11 @@
 import numpy as np
-from numpy import vstack, hstack
-from .Sim import  *
-from solvers import NewtonSolver, NewtonSolverParams
 
 
+from ..Sim import  *
+from ...solvers import NewtonSolver, NewtonSolverParams
+from .PinnedPendulumFEMState import PinnedPendulumFEMState
 
-class PinnedPendulumFEMState(SimState):
-
-    def __init__(self, x=None):
-        super().__init__()
-        if x is None:
-            self.x = np.array([[0], [-1.0]])
-        else:
-            self.x = x
-        return
-
-    def primary(self):
-        return self.x
-
-    def mixed(self):
-        return np.zeros((0, 1))
-
-
-class PinnedPendulumFEMParams():
+class PinnedPendulumFEMSimParams():
     def __init__(self, m=1, l0=1, mu=1, g=0, gamma=1, y=np.array([[0], [-1]]),
                  solver_p : NewtonSolverParams  = NewtonSolverParams()):
         """
@@ -53,14 +36,14 @@ class PinnedPendulumFEMParams():
         return
 class PinnedPendulumFEMSim(Sim):
 
-    def __init__(self, p : PinnedPendulumFEMParams = PinnedPendulumFEMParams()):
+    def __init__(self, p : PinnedPendulumFEMSimParams = PinnedPendulumFEMSimParams()):
         """
         A simulation of an elastic pinned pendulum, which is modelled as a spring of rest length l0 and stiffness mu with one endpoint fixed at (0, 0), and the other
         end point of mass m free to move in 2D space. The pendulum is subject to gravity g, and is attracted to a target point y with attractive force gamma.
 
         Parameters
         ----------
-        p : PinnedPendulumFEMParams
+        p : PinnedPendulumFEMSimParams
             Parameters of the pinned pendulum system
         """
         self.p = p

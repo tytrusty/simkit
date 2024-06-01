@@ -3,7 +3,7 @@ import numpy as np
 
 from .World import WorldParams
 
-from sims import *
+from ..sims.pinned_pendulum import *
 
 class PinnedPendulumWorldRenderer():
     def __init__(self, x: np.ndarray, y : np.ndarray):
@@ -27,16 +27,21 @@ class PinnedPendulumWorldRenderer():
 
 
 class PinnedPendulumWorldParams(WorldParams):
-    def __init__(self, render=False, init_state : PinnedPendulumFEMState | PinnedPendulumMFEMState = PinnedPendulumFEMState(), sim_params : PinnedPendulumFEMParams =PinnedPendulumFEMParams()):
+    def __init__(self, render=False, init_state : PinnedPendulumState = PinnedPendulumState(), sim_params : PinnedPendulumSimParams =PinnedPendulumSimParams()):
         self.render = render
         self.sim_params = sim_params
         self.init_state = init_state
 
-        if isinstance(self.sim_params, PinnedPendulumMFEMParams):
-            if (isinstance(self.init_state, PinnedPendulumFEMState)):
-                print("Warning: init_state is of type PinnedPendulumFEMState, but sim_params is of type PinnedPendulumMFEMParams. This may cause issues. Doing automatic conversion for now")
-                p = np.concatenate((self.init_state.x, np.array([[1], [0]])), axis=0)
-                self.init_state = PinnedPendulumMFEMState(p)
+
+
+        if type(self.sim_params.sub_p) ==  PinnedPendulumMFEMSimParams:
+            if type(self.init_state.sub_state) ==  PinnedPendulumFEMState:
+                  self.init_state = PinnedPendulumState(PinnedPendulumMFEMState(np.concatenate((self.init_state.sub_state.x, [[np.linalg.norm(self.init_state.sub_state.x)], [0]]), axis=0)))
+
+        if type(self.sim_params.sub_p) == PinnedPendulumFEMSimParams:
+            if type(self.init_state.sub_state) ==  PinnedPendulumMFEMState:
+                self.init_state = PinnedPendulumState(PinnedPendulumFEMState(self.init_state.sub_state.p[:2]))
+
         return
 
 
@@ -44,24 +49,17 @@ class PinnedPendulumWorld():
     def __init__(self, p : PinnedPendulumWorldParams = PinnedPendulumWorldParams()):
         self.p = p
 
-
-        if isinstance(self.p.sim_params, PinnedPendulumMFEMParams):
-            self.sim = PinnedPendulumMFEMSim(self.p.sim_params)
-        elif isinstance(self.p.sim_params, PinnedPendulumFEMParams):
-            self.sim = PinnedPendulumFEMSim(self.p.sim_params)
-        else:
-            assert(False, "Error: sim_params of type " + str(type(self.p.sim_params)) +
-                          " is not a valid instance of PinnedPendulumFEMParams or PinnedPendulumMFEMParams. Exiting.")
+        self.sim = PinnedPendulumSim(self.p.sim_params)
 
         if self.p.render:
-            self.renderer = PinnedPendulumWorldRenderer(self.p.init_state.primary(), self.p.sim_params.y)
+            self.renderer = PinnedPendulumWorldRenderer(self.p.init_state.position(), self.p.sim_params.sub_p.y)
         self.reset()
 
     def step(self):
         self.sim_state = self.sim.step_sim(self.sim_state)
 
         if self.p.render:
-            self.renderer.render(self.sim_state.primary())
+            self.renderer.render(self.sim_state.position())
 
         return
 
@@ -69,7 +67,7 @@ class PinnedPendulumWorld():
 
         self.sim_state = self.p.init_state
         if self.p.render:
-            self.renderer.render(self.sim_state.primary())
+            self.renderer.render(self.sim_state.position())
 
         pass
 

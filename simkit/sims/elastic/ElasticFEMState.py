@@ -3,9 +3,9 @@ import numpy as np
 from ..State import State
 class ElasticFEMState(State):
 
-    def __init__(self, x, y):
+    def __init__(self, x, x_prev):
         self.x = x
-        self.y = y
+        self.x_prev = x_prev
         return
 
     def primary(self):

@@ -2,7 +2,10 @@ import igl
 import scipy as sp
 import numpy as np
 
-def deformation_jacobian(V, T):
+
+from .simplex_vertex_map import simplex_vertex_map
+
+def deformation_jacobian(X : np.array, T : np.array):
     '''
     Linear mapping between positions and deformation gradients, assuming x has been flattened with default order="C":
 
@@ -32,36 +35,48 @@ def deformation_jacobian(V, T):
         [[Fyx Fyy Fyz]]
         [[Fzx Fzy Fzz]]
     '''
+    dt = T.shape[-1]
+    T = T.reshape(-1, dt)
+    nt = T.shape[0]    
+    dim = X.shape[1]
 
-    t = T.shape[0]
-    n = V.shape[0]
-    d = V.shape[1]
+    if dim == 2:
+        H = np.array([[-1, -1],
+                        [1, 0],
+                        [0, 1]])
+    if dim == 3:
+        H = np.array([[-1, -1, -1],
+                        [1, 0, 0],
+                        [0, 1, 0],
+                        [0, 0, 1]])
+    
+    XT = X[T].transpose(0, 2, 1)
+    XH = XT @ H
+    XHi = np.linalg.inv(XH)
+    D = (H @ XHi).transpose(0, 2, 1)
 
-    if d == 2:
-        V2 = np.hstack((V, np.zeros((V.shape[0], 1))))
-        G = igl.grad(V2, T)
-        G = G[0:-t, : ]
-    elif d == 3:
-        G = igl.grad(V, T)
+    De = np.zeros((nt, dim*dim,  dt*dim))
+   
+    for i in range(dim):
+        Di = np.zeros((nt, dim, dt*dim))
+        Ii = np.arange(dt)*dim + i
+        Di[:, :, Ii] = D
+        
+        De[:, dim*i:dim*(i + 1), :] = Di      
+      
 
-    Ge = sp.sparse.kron(sp.sparse.identity(d), G).tocsc()
+    Ii = np.arange(dim*dim*nt).reshape(nt, dim*dim, 1)
+    Ii = np.repeat(Ii, dim*dt, axis=2 )
 
-    # shuffle rows with permutation matrix
-    imat = np.tile(np.arange(0, d*d), (t, 1)) + np.arange(0, t)[:, np.newaxis] * d*d;
-    oo = np.arange(d*d) * t
-    jmat = np.tile(oo, (t, 1)) + np.arange(0, t)[:, np.newaxis]
-    vals = np.ones(imat.shape)
-    Pr = sp.sparse.coo_matrix((vals.flatten(), (imat.flatten(), jmat.flatten())), shape=(d*d* t, d*d* t)).tocsc()
+    Ji = np.arange(dim*dt*nt).reshape(nt, 1, dim*dt)
+    Ji = np.repeat(Ji, dim*dim, axis=1 )
 
-    # shuffle columns with permutation matrix
-    oo = np.arange(d)
-    jmat = np.tile(np.arange(n)[:, None], ( 1, d)) * d + oo
-    imat = np.tile(np.arange(n)[:, None], ( 1, d)) + np.tile(oo, (n, 1))*n
-    vals = np.ones(imat.shape)
-    Pc = sp.sparse.coo_matrix((vals.flatten(), (imat.flatten(), jmat.flatten())), shape=(d * n, d*n)).tocsc()
+    dims = np.prod(De.shape).item()
+    H = sp.sparse.csc_matrix((De.flatten(), (Ii.flatten(), Ji.flatten())), (nt*dim*dim, nt*dim*dt))
 
-    J = Pr @ Ge @ Pc
-
+    S = simplex_vertex_map(T)
+    Se = sp.sparse.kron(S, sp.sparse.identity(dim))
+    J = H @ Se
     return J
 
 
@@ -73,13 +88,13 @@ def deformation_jacobian(V, T):
 # Gradient of triangle or tet mesh . For now, U is scalar
 # '''
 # def gradient(X, F, U, HXHi=None):
-#
+
 #     if (len(U.shape) == 2):
 #         U = U[None, :, :]
 #     t = F.shape[1]  # simplex size
 #     dx = X.shape[1]
 #     du = U.shape[2]
-#
+
 #     TU =(U[:, F]).transpose([0, 1, 3, 2])
 #     assert (U.dtype == X.dtype)
 #     if (HXHi is None):
@@ -88,7 +103,7 @@ def deformation_jacobian(V, T):
 #             H = np.array([[-1.0, -1],
 #                           [1., 0],
 #                           [0, 1.0]], dtype=U.dtype)
-#
+
 #         # for each triangle, get the three vertex positions dealing with it
 #         elif F.shape[1] == 4:
 #             # triangle mesh!
@@ -102,10 +117,10 @@ def deformation_jacobian(V, T):
 #         XH = Tx @ H
 #         XHi = np.linalg.pinv(XH)
 #         HXHi = H @ XHi
-#
+
 #         grad = TU @ HXHi
 #         # grad = torch.squeeze(grad, dim=1)
-#
+
 #         # squeze first two dims
 #         grad = np.squeeze(grad)
 #         return grad, HXHi

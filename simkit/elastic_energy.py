@@ -1,16 +1,19 @@
 import numpy as np
 
 
+from .arap_energy import arap_energy
 
 
-def elastic_energy(x: np.ndarray, V: np.ndarray, T: np.ndarray, my: np.ndarray, lam: np.ndarray, material):
+def elastic_energy(x: np.ndarray, V: np.ndarray, T: np.ndarray, mu: np.ndarray, lam: np.ndarray, material):
 
     if material == 'linear_elasticity':
         raise NotImplemented
     elif material == 'arap':
-        arap_energy(x, V, T, mu)
+        e = arap_energy(x, V, T, mu)
     elif material == 'corot':
         raise NotImplemented
     elif material == 'neo_hookean':
         raise NotImplemented
-    return
+    else:
+        raise ValueError("Unknown material type: " + material)
+    return e

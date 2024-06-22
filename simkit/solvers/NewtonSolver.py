@@ -29,7 +29,12 @@ class NewtonSolver(Solver):
 
             g = self.gradient_func(x)
             H = self.hessian_func(x)
-            dx = sp.linalg.solve(H, -g)
+
+            # if sparse matrix
+            if sp.sparse.issparse(H):
+                dx = sp.sparse.linalg.spsolve(H, -g).reshape(-1, 1)
+            else:
+                dx = sp.linalg.solve(H, -g).reshape(-1, 1)
 
             if self.p.do_line_search:
                 energy_func = lambda z: self.energy_func(z)

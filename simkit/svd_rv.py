@@ -1,4 +1,4 @@
-
+import numpy as np
 def svd_rv(F):
     '''
     Computes the rotation variant of the SVD for a list of n dxd matrices F,
@@ -22,7 +22,8 @@ def svd_rv(F):
         The orthognal singular vectors V
     '''
 
-    F = F.reshape(1, *F.shape)
+    dim = F.shape[-1]
+    F = F.reshape(-1, dim, dim)
 
     d = F.shape[1]
     [U, S, VT] = np.linalg.svd(F)

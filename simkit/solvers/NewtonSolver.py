@@ -24,7 +24,7 @@ class NewtonSolver(Solver):
 
 
     def solve(self, x):
-
+        
         for i in range(self.p.max_iter):
 
             g = self.gradient_func(x)

@@ -58,11 +58,11 @@ class ElasticFEMSim(Sim):
         x = X.reshape(-1, 1)
         self.x = x
         self.x_dot = None
-
+        self.x0 = None
 
         M = massmatrix(self.X, self.T, rho=self.p.rho)
         self.M = M
-        Mv = sp.sparse.kron( M, np.identity(dim))# sp.sparse.block_diag([M for i in range(dim)])
+        Mv = sp.sparse.kron( M, sp.sparse.identity(dim))# sp.sparse.block_diag([M for i in range(dim)])
         self.Mv = Mv
 
         if p.Q is None:
@@ -93,10 +93,9 @@ class ElasticFEMSim(Sim):
         return
 
     def kinetic_energy(self, x : np.ndarray):
-        y = x + self.p.h * self.x_dot
-        d = (x - y)
+        d = (x - self.y)
         M = self.Mv
-        e = 0.5 * d.T @ M @ d * (1/ self.p.h**2)
+        e = 0.5 * d.T @ M @ d * (1/ (self.p.h**2))
         return e
 
     def elastic_energy(self, x: np.ndarray):
@@ -136,8 +135,7 @@ class ElasticFEMSim(Sim):
         return g
 
     def kinetic_gradient(self, x : np.ndarray):
-        y = x + self.p.h * self.x_dot
-        g = self.Mv @ (x - y) * (1/ self.p.h**2)
+        g = self.Mv @ (x - self.y) * (1/ (self.p.h**2))
         return g
 
     def quadratic_gradient(self, x : np.ndarray):
@@ -220,9 +218,10 @@ class ElasticFEMSim(Sim):
         x : (n*d, 1) numpy array
             Next positions of the pinned pendulum system
         """
-        self.x_dot = x_dot
-        x = self.solver.solve(x)
-        return x
+        self.y = x + self.p.h * x_dot
+        x0 = x.copy()
+        x_next = self.solver.solve(x0)
+        return x_next
 
 
     def step_sim(self, state : ElasticFEMState ):

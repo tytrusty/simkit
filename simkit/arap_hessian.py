@@ -19,7 +19,17 @@ def arap_hessian_F(F, mu=1, vol=1):
     H *= d.reshape(-1, 1, 1)
     return H
 
-def arap_hessian(x, V, T, mu=1, pre=None):
+
+def arap_hessian(X, T, U = None, mu=1, pre=None ):
+    if U is None:
+        U = X.copy()
+
+    x = U.reshape(-1, 1)
+    
+    H = arap_hessian_x(x, X, T, mu=mu, pre=pre)
+    return H
+    
+def arap_hessian_x(x, V, T, mu=1, pre=None):
     dim = V.shape[1]
     J = deformation_jacobian(V, T)
     f = J @ x

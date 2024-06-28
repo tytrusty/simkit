@@ -8,7 +8,6 @@ from .polar_svd import polar_svd
 
 
 
-
 def arap_gradient_F(F, mu=1, vol=1):
     dim = F.shape[-1]
     F = F.reshape(-1, dim, dim)
@@ -17,16 +16,25 @@ def arap_gradient_F(F, mu=1, vol=1):
     d = mu * vol
     PK1 *= d.reshape(-1, 1, 1)
     return PK1
-def arap_gradient(x, V, T, mu, pre=None):
+
+def arap_gradient(x, V, T, mu, J=None, vol=None):
 
     dim = V.shape[1]
-    vol = volume(V, T)
-    J = deformation_jacobian(V, T)
+
+    if vol is None:
+        vol = volume(V, T)
+
+    if J is None:
+        J = deformation_jacobian(V, T)
+
     f = J @ x
-    F = np.reshape(f, (-1, dim, dim))
+    F = f.reshape(-1, dim, dim)
+
     dpsi_dF = arap_gradient_F(F, mu=mu, vol=vol)
     pk1 = dpsi_dF.reshape(-1, 1)
+
     g = J.transpose() @ pk1
+
     return g
 #
 # def arap_gradient(V, T, mu=None, U=None):

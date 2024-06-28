@@ -2,9 +2,15 @@ import igl
 import numpy as np
 import scipy as sp
 
+from simkit import deformation_jacobian, quadratic_hessian
+
 from ...solvers import NewtonSolver, NewtonSolverParams
 from ... import ympr_to_lame
 from ... import elastic_energy, elastic_gradient, elastic_hessian
+from ... import quadratic_energy, quadratic_gradient, quadratic_hessian
+from ... import kinetic_energy, kinetic_gradient, kinetic_hessian
+from ... import volume
+
 from ... import massmatrix
 
 
@@ -54,7 +60,6 @@ class ElasticFEMSim(Sim):
         self.X = X
         self.T = T
 
-
         x = X.reshape(-1, 1)
         self.x = x
         self.x_dot = None
@@ -64,6 +69,25 @@ class ElasticFEMSim(Sim):
         self.M = M
         Mv = sp.sparse.kron( M, sp.sparse.identity(dim))# sp.sparse.block_diag([M for i in range(dim)])
         self.Mv = Mv
+
+        # elastic energy, gradient and hessian
+        self.J = deformation_jacobian(self.X, self.T)
+        self.vol = volume(self.X, self.T)
+        self.elastic_energy = lambda x: elastic_energy(x, self.X, self.T, self.mu, self.lam, self.p.material, J=self.J, vol=self.vol)
+        self.elastic_gradient = lambda x: elastic_gradient(x, self.X, self.T, self.mu, self.lam, self.p.material, J=self.J, vol=self.vol)
+        self.elastic_hessian = lambda x: elastic_hessian(x, self.X, self.T, self.mu, self.lam, self.p.material, J=self.J, vol=self.vol)
+
+        # quadratic energy, gradient and hessian
+        self.quadratic_energy = lambda x: quadratic_energy(x, self.Q, self.b)
+        self.quadratic_gradient = lambda x: quadratic_gradient(x, self.Q, self.b)
+        self.quadratic_hessian = lambda : quadratic_hessian(self.Q)
+
+        # kinetic energy, gradient and hessian
+        self.y = x
+        self.kinetic_energy = lambda x: kinetic_energy(x, self.y, self.Mv, self.p.h)
+        self.kinetic_gradient = lambda x: kinetic_gradient(x, self.y, self.Mv, self.p.h)
+        self.kinetic_hessian = lambda : kinetic_hessian(self.Mv, self.p.h)
+
 
         if p.Q is None:
             self.Q = sp.sparse.csc_matrix((x.shape[0], x.shape[0]))
@@ -92,21 +116,6 @@ class ElasticFEMSim(Sim):
                           " is not a valid instance of NewtonSolverParams. Exiting.")
         return
 
-    def kinetic_energy(self, x : np.ndarray):
-        d = (x - self.y)
-        M = self.Mv
-        e = 0.5 * d.T @ M @ d * (1/ (self.p.h**2))
-        return e
-
-    def elastic_energy(self, x: np.ndarray):
-        e = elastic_energy(x, self.X, self.T, self.mu, self.lam, self.p.material)
-        return e
-
-    def quadratic_energy(self, x : np.ndarray):
-        Q = self.Q
-        b = self.b
-        e = 0.5 * x.T @ Q @ x + b.T @ x
-        return e
 
     def energy(self, x : np.ndarray):
         """
@@ -129,20 +138,6 @@ class ElasticFEMSim(Sim):
         quad = self.quadratic_energy(x)
         total = k + v + quad
         return total
-
-    def elastic_gradient(self, x: np.ndarray):
-        g = elastic_gradient(x, self.X, self.T, self.mu, self.lam, self.p.material)
-        return g
-
-    def kinetic_gradient(self, x : np.ndarray):
-        g = self.Mv @ (x - self.y) * (1/ (self.p.h**2))
-        return g
-
-    def quadratic_gradient(self, x : np.ndarray):
-        Q = self.Q
-        b = self.b
-        g = Q @ x + b
-        return g
 
 
     def gradient(self, x : np.ndarray):
@@ -167,19 +162,6 @@ class ElasticFEMSim(Sim):
         return total
 
 
-    def elastic_hessian(self, x: np.ndarray):
-        H = elastic_hessian(x, self.X, self.T, self.mu, self.lam, self.p.material)
-        return H
-
-    def kinetic_hessian(self):
-        M = self.Mv * (1/ (self.p.h**2))
-        return M
-
-    def quadratic_hessian(self):
-        Q = self.Q
-        return Q
-
-
     def hessian(self, x : np.ndarray):
         """
         Parameters
@@ -192,11 +174,9 @@ class ElasticFEMSim(Sim):
         g : (n*d, n*d)  sparse matrix
             Hessian of the energy of the elastic system
         """
-
         v = self.elastic_hessian(x)
         k = self.kinetic_hessian()
         quad = self.quadratic_hessian()
-
         total = v + k + quad
         return total
 
@@ -219,7 +199,7 @@ class ElasticFEMSim(Sim):
             Next positions of the pinned pendulum system
         """
         self.y = x + self.p.h * x_dot
-        x0 = x.copy()
+        x0 = x.copy() # very important to copy this here so that x does not get over-written
         x_next = self.solver.solve(x0)
         return x_next
 
@@ -240,7 +220,7 @@ class ElasticFEMSim(Sim):
             next state of the pinned pendulum system
 
         """
-        x = self.step(state.x, state.x_prev)
+        x = self.step(state.x, state.x_dot)
         state = ElasticFEMState(x)
         return state
 

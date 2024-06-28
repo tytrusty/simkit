@@ -1,3 +1,4 @@
+from types import NoneType
 import igl
 import scipy as sp
 import numpy as np
@@ -6,42 +7,38 @@ from .deformation_jacobian import deformation_jacobian
 from .rotation_gradient import rotation_gradient_F
 from .volume import volume
 
-def arap_hessian_F(F, mu=1, vol=1):
 
+def arap_hessian_F(F, mu=1, vol=1):
     dim = F.shape[-1]
     F = F.reshape(-1, dim, dim)
-
     n = F.shape[0]
     I = np.tile(np.identity(dim * dim), (n, 1, 1))
-
     H = 2 * I - 2 *  rotation_gradient_F(F)
     d = mu * vol
     H *= d.reshape(-1, 1, 1)
     return H
 
-
-def arap_hessian(X, T, U = None, mu=1, pre=None ):
+def arap_hessian(X, T, U = None, mu=1, J=None):
     if U is None:
         U = X.copy()
-
     x = U.reshape(-1, 1)
-    
-    H = arap_hessian_x(x, X, T, mu=mu, pre=pre)
+    H = arap_hessian_x(x, X, T, mu=mu, J=None)
     return H
-    
-def arap_hessian_x(x, V, T, mu=1, pre=None):
+
+def arap_hessian_x(x, V, T, mu=1, J=None, vol=None):
     dim = V.shape[1]
-    J = deformation_jacobian(V, T)
+    if J is None:
+        J = deformation_jacobian(V, T)
     f = J @ x
 
-    vol = volume(V, T)
-    F = np.reshape(f, (-1, dim, dim))
+    if vol is None:
+        vol = volume(V, T)
+    F = f.reshape(-1, dim, dim)
     d2psidF2 = arap_hessian_F(F, mu=mu, vol=vol)
     H = sp.sparse.block_diag(d2psidF2)  # block diagonal hessian matrix
-
     Q = J.transpose() @ H @ J
-
     return Q
+
 # def arap_hessian(V, T, mu=None, U=None):
 #     """
 #

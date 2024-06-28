@@ -4,18 +4,23 @@ from .volume import volume
 from .deformation_jacobian import deformation_jacobian
 from .polar_svd import polar_svd
 
-def arap_energy(x, V, F, mu, pre=None):
+def arap_energy(x, V, F, mu, J=None, vol=None):
 
     dim = V.shape[1]
-    vol = volume(V, F)
 
-    J = deformation_jacobian(V, F)
+    if vol is None:
+        vol = volume(V, F)
+
+    if J is None:
+        J = deformation_jacobian(V, F)
+
     f = J @ x
 
-    F = np.reshape(f, (-1, dim, dim))
+    F = f.reshape(-1, dim, dim)
     [R, S] = polar_svd(F)
+    # R = R.transpose(0, 2, 1)
 
-    E = 0.5 * np.sum((mu * vol) * np.sum((F - R)**2))
+    E =  0.5*np.sum((mu * vol) * np.sum((F - R)**2, axis=(1, 2))[:, None])
 
     return E
 #

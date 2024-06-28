@@ -23,8 +23,9 @@ class NewtonSolver(Solver):
         pass
 
 
-    def solve(self, x):
+    def solve(self, x0):
         
+        x = x0.copy()
         for i in range(self.p.max_iter):
 
             g = self.gradient_func(x)
@@ -43,7 +44,7 @@ class NewtonSolver(Solver):
                 alpha = 1.0
 
             x += alpha * dx
-            if np.linalg.norm(g) < 1e-6:
+            if np.linalg.norm(g) < 1e-4:
                 break
 
         return x

@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from .arap_energy import arap_energy
+from .arap_energy import arap_energy_x
 
 
 def elastic_energy(x: np.ndarray, V: np.ndarray, T: np.ndarray, mu: np.ndarray, lam: np.ndarray, material, J=None, vol=None):
@@ -11,7 +11,7 @@ def elastic_energy(x: np.ndarray, V: np.ndarray, T: np.ndarray, mu: np.ndarray, 
     if material == 'linear_elasticity':
         raise NotImplemented
     elif material == 'arap':
-        e = arap_energy(x, V, T, mu, J=J, vol=vol)
+        e = arap_energy_x(x, V, T, mu, J=J, vol=vol)
     elif material == 'corot':
         raise NotImplemented
     elif material == 'neo_hookean':

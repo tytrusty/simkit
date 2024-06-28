@@ -4,7 +4,14 @@ from .volume import volume
 from .deformation_jacobian import deformation_jacobian
 from .polar_svd import polar_svd
 
-def arap_energy(x, V, F, mu, J=None, vol=None):
+def arap_energy(X, T, U=None, mu=1, vol=None):
+    if U is None:
+        U = X.copy()
+    x = U.reshape(-1, 1)
+    e = arap_energy_x(x, X, T, mu=mu, vol=vol)
+    return e
+
+def arap_energy_x(x, V, F, mu, J=None, vol=None):
 
     dim = V.shape[1]
 

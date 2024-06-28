@@ -17,7 +17,17 @@ def arap_gradient_F(F, mu=1, vol=1):
     PK1 *= d.reshape(-1, 1, 1)
     return PK1
 
-def arap_gradient(x, V, T, mu, J=None, vol=None):
+def arap_gradient( X, T, U=None, mu=1, J=None, vol=None):
+
+    if U is None:
+        U = X.copy()
+    x = U.reshape(-1, 1)
+    g = arap_gradient_x(x, X, T, mu=mu, J=None, vol=vol)
+
+    return g
+
+
+def arap_gradient_x(x, V, T, mu, J=None, vol=None):
 
     dim = V.shape[1]
 

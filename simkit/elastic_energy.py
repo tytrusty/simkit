@@ -6,8 +6,6 @@ from .arap_energy import arap_energy_x
 
 def elastic_energy(x: np.ndarray, V: np.ndarray, T: np.ndarray, mu: np.ndarray, lam: np.ndarray, material, J=None, vol=None):
 
-  
-
     if material == 'linear_elasticity':
         raise NotImplemented
     elif material == 'arap':

@@ -10,14 +10,15 @@ from simkit.grad import grad
 from simkit.gravity_force import gravity_force
 from simkit.sims.elastic import ElasticMFEMSim, ElasticMFEMState
 from simkit.stretch import stretch
+from simkit.symmetric_stretch_map import symmetric_stretch_map
 
 [X, _, _, T, _, _] = igl.read_obj("../data/2d/beam/beam.obj")
 
-[X, _, _, T, _, _] = igl.read_obj("../data/2d/bingby/bingby.obj")
+# [X, _, _, T, _, _] = igl.read_obj("../data/2d/bingby/bingby.obj")
 
-[X, _, _, T, _, _] = igl.read_obj("../data/2d/T/T.obj")
+# [X, _, _, T, _, _] = igl.read_obj("../data/2d/T/T.obj")
 
-[X, _, _, T, _, _] = igl.read_obj("../data/2d/cthulu/cthulu.obj")
+# [X, _, _, T, _, _] = igl.read_obj("../data/2d/cthulu/cthulu.obj")
 
 X = X[:, 0:2]
 X = X / max(X.max(axis=0) - X.min(axis=0))
@@ -25,7 +26,24 @@ X = X / max(X.max(axis=0) - X.min(axis=0))
 x = X.reshape(-1, 1)
 J = deformation_jacobian(X, T)
 
-F = (J @ x).reshape(-1, 2, 2)
+
+
+S = np.random.rand(3, 3)
+S = S  + S.T
+
+t = T.shape[0]
+[C, Ci] =symmetric_stretch_map(t, 3)
+
+vecS = stretch(S).reshape(-1, 1)
+
+s = Ci @ vecS
+vecS_test = C @ s
+
+err = np.linalg.norm(vecS - vecS_test)
+
+
+ff0 = C @ C.T @ f0
+
 s = stretch(F).reshape(-1, 1)
 l = np.zeros(s.shape)
 x_dot = np.zeros(x.shape)
@@ -41,7 +59,7 @@ sim_params = ElasticMFEMSimParams()
 
 sim_params.b = bp + bg
 sim_params.Q = Qp
-sim_params.ym = 1e12
+sim_params.ym = 1e5
 sim_params.h = 1e-2
 sim_params.rho = rho
 sim_params.solver_p.max_iter= 1

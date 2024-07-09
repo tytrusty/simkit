@@ -4,33 +4,44 @@ from .volume import volume
 from .deformation_jacobian import deformation_jacobian
 from .polar_svd import polar_svd
 
-def arap_energy(X, T, U=None, mu=1, vol=None):
-    if U is None:
-        U = X.copy()
-    x = U.reshape(-1, 1)
-    e = arap_energy_x(x, X, T, mu=mu, vol=vol)
-    return e
+# def arap_energy(X, T, U=None, mu=1, vol=None):
+#     if U is None:
+#         U = X.copy()
+#     x = U.reshape(-1, 1)
+#     e = arap_energy_x(x, X, T, mu=mu, vol=vol)
+#     return e
 
-def arap_energy_x(x, V, F, mu, J=None, vol=None):
 
-    dim = V.shape[1]
-
-    if vol is None:
-        vol = volume(V, F)
-
-    if J is None:
-        J = deformation_jacobian(V, F)
-
-    f = J @ x
-
-    F = f.reshape(-1, dim, dim)
-    [R, S] = polar_svd(F)
-    # R = R.transpose(0, 2, 1)
-
-    E =  0.5*np.sum((mu * vol) * np.sum((F - R)**2, axis=(1, 2))[:, None])
-
+def arap_energy_S(s, mu, vol):
+    assert (s.ndim == 2 or s.ndim == 3)
+    if s.ndim == 3:
+        dim = s.shape[-1]
+        psi = s - np.eye(dim)[None, :, :]
+        E = 0.5 * np.sum((mu * vol) * np.sum(psi**2, axis=(1, 2))[:, None])
+    if s.ndim == 2:
+        k = s.shape[-1]
+        # relationship between k =  dim * (dim + 1)/2
+        if k == 3:
+            dim = 2
+            w = np.array([ 1, 1, 2])[None, :]
+            i = np.array([1, 1, 0])[None, :]
+        elif k == 6:
+            dim = 3
+            w = np.array([ 1, 1, 1, 2, 2, 2])[None, :]
+            i = np.array([1, 1, 1, 0, 0, 0])[None, :]
+        else:
+            raise ValueError("Unknown dimension, k must be 3 (for 2D) or 6 (for 3D)")
+        
+        psi = (s - i)
+        E = 0.5 * np.sum((mu * vol) * np.sum(psi**2 * w, axis=1)[:, None])
     return E
-#
+
+def arap_energy_F(F, mu, vol):
+    [R, S] = polar_svd(F)
+    E =  0.5*np.sum((mu * vol) * np.sum((F - R)**2, axis=(1, 2))[:, None])
+    return E
+
+
 # def arap_energy(V, F, mu=None, U=None):
 #     """
 #         Computes the ARAP energy evaluated at a given displacement U

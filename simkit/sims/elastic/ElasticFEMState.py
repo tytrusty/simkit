@@ -8,9 +8,4 @@ class ElasticFEMState(State):
         self.x_dot = x_dot
         return
 
-    def primary(self):
-        return self.x
 
-
-    # def mixed(self):
-    #     return np.zeros((0, 1))

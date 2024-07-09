@@ -3,3 +3,4 @@ polyscope
 numpy
 scipy
 matplotlib
+scikit-learn

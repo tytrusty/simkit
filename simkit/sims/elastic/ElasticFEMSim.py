@@ -6,7 +6,7 @@ from simkit import deformation_jacobian, quadratic_hessian
 
 from ...solvers import NewtonSolver, NewtonSolverParams
 from ... import ympr_to_lame
-from ... import elastic_energy, elastic_gradient, elastic_hessian
+from ... import elastic_energy_x, elastic_gradient_dx, elastic_hessian_d2x
 from ... import quadratic_energy, quadratic_gradient, quadratic_hessian
 from ... import kinetic_energy, kinetic_gradient, kinetic_hessian
 from ... import volume
@@ -19,7 +19,7 @@ from .ElasticFEMState import ElasticFEMState
 
 
 class ElasticFEMSimParams():
-    def __init__(self, rho=1, h=1e-2, ym=1, pr=1, g=0,  material='arap',
+    def __init__(self, rho=1, h=1e-2, ym=1, pr=0, g=0,  material='arap',
                  solver_p : NewtonSolverParams  = NewtonSolverParams(), f_ext = None, Q=None, b=None):
         """
         Parameters of the pinned pendulum simulation
@@ -59,7 +59,6 @@ class ElasticFEMSim(Sim):
         # preprocess some quantities
         self.X = X
         self.T = T
-
         x = X.reshape(-1, 1)
         self.x = x
         self.x_dot = None
@@ -73,9 +72,10 @@ class ElasticFEMSim(Sim):
         # elastic energy, gradient and hessian
         self.J = deformation_jacobian(self.X, self.T)
         self.vol = volume(self.X, self.T)
-        self.elastic_energy = lambda x: elastic_energy(x, self.X, self.T, self.mu, self.lam, self.p.material, J=self.J, vol=self.vol)
-        self.elastic_gradient = lambda x: elastic_gradient(x, self.X, self.T, self.mu, self.lam, self.p.material, J=self.J, vol=self.vol)
-        self.elastic_hessian = lambda x: elastic_hessian(x, self.X, self.T, self.mu, self.lam, self.p.material, J=self.J, vol=self.vol)
+        
+        self.elastic_energy = lambda x: elastic_energy_x(x.reshape(-1, dim), self.J, self.mu, self.lam, self.vol, self.p.material)
+        self.elastic_gradient = lambda x: elastic_gradient_dx(x.reshape(-1, dim), self.J, self.mu, self.lam, self.vol, self.p.material)
+        self.elastic_hessian = lambda x: elastic_hessian_d2x(x.reshape(-1, dim), self.J, self.mu, self.lam, self.vol, self.p.material)
 
         # quadratic energy, gradient and hessian
         self.quadratic_energy = lambda x: quadratic_energy(x, self.Q, self.b)
@@ -220,8 +220,9 @@ class ElasticFEMSim(Sim):
             next state of the pinned pendulum system
 
         """
-        x = self.step(state.x, state.x_dot)
-        state = ElasticFEMState(x)
+        x= self.step(state.x, state.x_dot)
+        x_dot = (x - state.x)/ self.p.h
+        state = ElasticFEMState(x, x_dot)
         return state
 
 

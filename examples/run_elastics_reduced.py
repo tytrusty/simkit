@@ -32,7 +32,7 @@ X = X / max(X.max(axis=0) - X.min(axis=0))
 dim = X.shape[1]
 
 m = 10
-k = 10
+k = 500
 [W, E,  B] = skinning_eigenmodes(X, T, m)
 [cI, cW, labels] = spectral_cubature(X, T, W, k, return_labels=True)
 
@@ -64,13 +64,13 @@ sim_params.b = B.T @ ( bp + bg)
 sim_params.Q = B.T @ Qp @ B
 
 
-sim_params.ym = 1e4
+sim_params.ym = 1e6
 sim_params.h = 1e-2
 sim_params.rho = rho
 sim_params.solver_p.max_iter= 1
 sim_params.solver_p.do_line_search = True #True
 
-sim = ElasticROMFEMSim(X, T,B, p=sim_params)
+sim = ElasticROMFEMSim(X, T,B, cI=cI, cW=cW, p=sim_params)
 # sim = ElasticMFEMSim(X, T, sim_params)
 ps.init()
 ps.set_ground_plane_mode("none")

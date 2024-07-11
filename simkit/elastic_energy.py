@@ -30,8 +30,8 @@ def elastic_energy_x(X: np.ndarray, J: np.ndarray, mu: np.ndarray, lam: np.ndarr
 
 
 class ElasticEnergyZPrecomp():
-    def __init__(self, J, B, dim):
-        self.JB = J @ B
+    def __init__(self, B, G, J, dim):
+        self.JB = G @ J @ B
         self.dim = dim
 
 def elastic_energy_z(z: np.ndarray, mu : np.ndarray, lam:np.ndarray, vol : np.ndarray, material, precomp : ElasticEnergyZPrecomp, F=None):

@@ -1,7 +1,7 @@
 import igl
 import numpy as np
 import scipy as sp
-from simkit import deformation_jacobian, project_into_subspace, quadratic_hessian
+from simkit import deformation_jacobian, project_into_subspace, quadratic_hessian, selection_matrix
 
 from ...solvers import NewtonSolver, NewtonSolverParams
 from ... import ympr_to_lame
@@ -54,8 +54,15 @@ class ElasticROMFEMSim(Sim):
         self.dim = dim
 
         self.p = p
-        self.mu, self.lam = ympr_to_lame(self.p.ym, self.p.pr)
+        mu, lam = ympr_to_lame(self.p.ym, self.p.pr)
+        if isinstance(mu, float):
+            mu = np.ones((T.shape[0], 1)) * mu
+        if isinstance(lam, float):
+            lam = np.ones((T.shape[0], 1)) * lam
+        self.mu = mu
+        self.lam = lam
 
+        
         # preprocess some quantities
         self.X = X
         self.T = T
@@ -71,12 +78,9 @@ class ElasticROMFEMSim(Sim):
         self.Mv = Mv
 
         # elastic energy, gradient and hessian
-        self.J = deformation_jacobian(self.X, self.T)
         self.B = B
 
 
-        self.kin_z_precomp = KineticEnergyZPrecomp(self.B, self.Mv)
-        self.elastic_z_precomp = ElasticEnergyZPrecomp(self.J, self.B, self.dim)
 
         if cI is not None:
             assert cW is not None
@@ -87,9 +91,16 @@ class ElasticROMFEMSim(Sim):
         if cW is None:
             self.vol = volume(self.X, self.T)
         else:
-            self.vol = cW
+            self.vol = cW.reshape(-1, 1)
 
+        self.mu = self.mu[cI]
+        self.lam = self.lam[cI]
 
+        G = selection_matrix(cI, self.T.shape[0])
+        self.Ge = sp.sparse.kron(G, sp.sparse.identity(dim*dim))
+        self.J = deformation_jacobian(self.X, self.T)
+        self.kin_z_precomp = KineticEnergyZPrecomp(self.B, self.Mv)
+        self.elastic_z_precomp = ElasticEnergyZPrecomp(self.B, self.Ge, self.J, self.dim)
 
         if p.Q is None:
             self.Q = sp.sparse.csc_matrix((x.shape[0], x.shape[0]))

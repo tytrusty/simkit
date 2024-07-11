@@ -15,7 +15,6 @@ def arap_hessian(**kwargs):
     else :
         mu = 1
 
-
     if 'X'  in kwargs and 'T' in kwargs:
         X = kwargs['X']
         T = kwargs['T']

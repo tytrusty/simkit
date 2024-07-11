@@ -29,6 +29,19 @@ def elastic_energy_x(X: np.ndarray, J: np.ndarray, mu: np.ndarray, lam: np.ndarr
     return e
 
 
+class ElasticEnergyZPrecomp():
+    def __init__(self, J, B, dim):
+        self.JB = J @ B
+        self.dim = dim
+
+def elastic_energy_z(z: np.ndarray, mu : np.ndarray, lam:np.ndarray, vol : np.ndarray, material, precomp : ElasticEnergyZPrecomp, F=None):
+    if F is None:
+        dim = precomp.dim
+        F = (precomp.JB @ z).reshape(-1, dim, dim)
+    e = elastic_energy(F, mu, lam, vol, material)
+    return e
+
+
 def elastic_energy_S(S : np.ndarray, mu: np.ndarray, lam : np.ndarray, vol : np.ndarray, material):
 
     if material == 'arap':
@@ -36,3 +49,4 @@ def elastic_energy_S(S : np.ndarray, mu: np.ndarray, lam : np.ndarray, vol : np.
     else:
         raise ValueError("Unknown material type: " + material)
     return e
+

@@ -76,3 +76,7 @@ for i in range(1000):
     ps.frame_tick()
 
 
+
+
+# What Ty needs :
+# Energy per-stencil

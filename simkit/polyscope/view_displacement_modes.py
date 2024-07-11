@@ -4,7 +4,7 @@ import numpy as np
 import polyscope as ps
 
 
-def view_displacement_modes(X, T, W, a=0.1):
+def view_displacement_modes(X, T, W, a=0.1, period=100):
 
     ps.init()
     ps.set_give_focus_on_show(True)
@@ -37,8 +37,8 @@ def view_displacement_modes(X, T, W, a=0.1):
             U =  Wi.reshape((-1, dim))
             Umax = np.linalg.norm(W, axis=1)
             
-            for i in range(24):
-                D = a* U * np.sin( 2 * np.pi * i / 24)
+            for i in range(period):
+                D = a* U * np.sin( 2 * np.pi * i / period)
                 geo.update_vertex_positions(X + D)
 
                 

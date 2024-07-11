@@ -23,6 +23,18 @@ def elastic_hessian_d2x(X : np.ndarray, J : np.ndarray, mu : np.ndarray, lam : n
     return Q
 
 
+
+from .elastic_energy import ElasticEnergyZPrecomp
+def elastic_hessian_d2z(z : np.ndarray, mu : np.ndarray, lam : np.ndarray, vol : np.ndarray, material, precomp : ElasticEnergyZPrecomp, F=None):
+    if F is None:
+        dim = precomp.dim
+        F = (precomp.JB @ z).reshape(-1, dim, dim)  # should give an option for passing in F so we don't recompute
+    d2psidF2 = elastic_hessian_d2F(F, mu, lam, vol, material)
+    H = sp.sparse.block_diag(d2psidF2)
+    H = precomp.JB.transpose() @ H @ precomp.JB
+    return H
+
+
 def elastic_hessian_d2S(s : np.ndarray, mu : np.ndarray, lam : np.ndarray, vol : np.ndarray, material):
     if material == 'arap':
         return arap_hessian_d2S(s, mu, vol)

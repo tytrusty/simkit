@@ -29,9 +29,9 @@ J = deformation_jacobian(X, T)
 dim = X.shape[1]
 F = (J @ x).reshape(-1, dim, dim)
 
-C , Ci = symmetric_stretch_map(T.shape[0], dim)
-s = (Ci @ stretch(F).reshape(-1, 1)).reshape(-1, 1)
-l = np.zeros(s.shape)
+# C , Ci = symmetric_stretch_map(T.shape[0], dim)
+# s = (Ci @ stretch(F).reshape(-1, 1)).reshape(-1, 1)
+# l = np.zeros(s.shape)
 x_dot = np.zeros(x.shape)
 
 rho = 1e3

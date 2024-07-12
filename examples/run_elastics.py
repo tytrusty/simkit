@@ -18,7 +18,7 @@ from simkit.symmetric_stretch_map import symmetric_stretch_map
 
 # [X, _, _, T, _, _] = igl.read_obj("../data/2d/T/T.obj")
 
-[X, _, _, T, _, _] = igl.read_obj("../data/2d/cthulu/cthulu.obj")
+[X, _, _, T, _, _] = igl.read_obj("./data/2d/cthulu/cthulu.obj")
 
 X = X[:, 0:2]
 X = X / max(X.max(axis=0) - X.min(axis=0))

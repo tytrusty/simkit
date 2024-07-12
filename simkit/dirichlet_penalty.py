@@ -1,14 +1,14 @@
 import scipy as sp
 import numpy as np
 
-def dirichlet_penalty(bI, bc, nv,  gamma):
+def dirichlet_penalty(bI, y, nv,  gamma):
     """
     Determines a quadratic pinning penalty objective to hold vertex indices bI of mesh V, T
     fixed in place.
 
     The pinning penalty is given by:
-    E = 1/2 * || Sx - x0||_Gamma^2
-    E = 1/2 x^T Gamma x - x^T Gamma x + const
+    E = 1/2 * || Sx - y||_Gamma^2
+    E = 1/2 x^T S^T Gamma S x - x^T S^T Gamma S y + const
 
     Parameters
     ----------
@@ -32,7 +32,7 @@ def dirichlet_penalty(bI, bc, nv,  gamma):
 
     nc = bI.shape[0]
     S = sp.sparse.csc_matrix((  np.ones(nc), (bI, np.arange(nc))) , (nv, nc) )
-    d = bc.shape[1]
+    d = y.shape[1]
 
     S = sp.sparse.kron(S, sp.sparse.eye(d))
     cn = bI.shape[0]
@@ -46,7 +46,7 @@ def dirichlet_penalty(bI, bc, nv,  gamma):
     Q = S @ Gamma @ S.T
 
 
-    b = -S @ Gamma @ bc.reshape(-1, 1)
+    b = -S @ Gamma @ y.reshape(-1, 1)
     return Q, b
 
 

@@ -37,30 +37,32 @@ x_dot = np.zeros(x.shape)
 rho = 1e3
 bg =  - gravity_force(X, T, rho=rho).reshape(-1, 1)
 bI =  np.where(X[:, 0] < 0.001 + X[:, 0].min())[0]
-bc = (X[bI, :])
-[Qp, bp] = dirichlet_penalty(bI, bc, X.shape[0],  1e7)
+bc0 = (X[bI, :])
+[Qp, bp] = dirichlet_penalty(bI, bc0, X.shape[0],  1e7)
 
 sim_params = ElasticFEMSimParams()
 # sim_params = ElasticMFEMSimParams()
 
-sim_params.b = bp + bg
-sim_params.Q = Qp
-sim_params.ym = 1e12
+# sim_params.b = bg
+# sim_params.Q = Qp
+sim_params.ym = 1e6
 sim_params.h = 1e-2
 sim_params.rho = rho
-sim_params.solver_p.max_iter= 1
+sim_params.solver_p.max_iter= 3
 sim_params.solver_p.do_line_search = True #True
 
 
 sim = ElasticFEMSim(X, T, sim_params)
 # sim = ElasticMFEMSim(X, T, sim_params)
 
+period = 100
 ps.init()
 ps.set_ground_plane_mode("none")
 mesh = ps.register_surface_mesh("mesh", X, T, edge_width=1)
 for i in range(1000):
-
-    x_next = sim.step(x,  x_dot)
+    bc = bc0 + np.sin( 2 * np.pi * i / (period)) * np.array([[1, 0]])
+    [Q_ext, b_ext] = dirichlet_penalty(bI, bc, X.shape[0],  1e10)
+    x_next = sim.step(x,  x_dot, Q_ext, b_ext + bg)
     x_dot = (x_next - x) / sim_params.h    
     x = x_next.copy()
 

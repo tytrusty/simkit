@@ -154,9 +154,15 @@ class ElasticROMFEMSim(Sim):
         return total
 
 
-    def step(self, z : np.ndarray, z_dot : np.ndarray):
+    def step(self, z : np.ndarray, z_dot : np.ndarray, Q_ext=None, b_ext=None):
         self.y = z + self.p.h * z_dot
+        
+        self.Q = Q_ext
+        self.b = b_ext
+        
         z0 = z.copy() # very important to copy this here so that x does not get over-written
+        
+        
         z_next = self.solver.solve( z0)
         # z_next = project_into_subspace(x_next, self.B)
         return z_next

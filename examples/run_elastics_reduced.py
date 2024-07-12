@@ -1,5 +1,4 @@
 
-from turtle import st
 import numpy as np
 import igl
 import polyscope as ps

@@ -101,39 +101,3 @@ def arap_hessian_d2S(s, mu, vol):
         H_s = sp.sparse.diags(h.flatten())
             
     return H_s 
-# def arap_hessian(V, T, mu=None, U=None):
-#     """
-#
-#         Computes the ARAP Hessian matrix at a given displacement U
-#
-#     """
-#     dim = V.shape[1]
-#     if (mu is None):
-#         mu = np.ones((T.shape[0]))
-#     elif (np.isscalar(mu)):
-#         mu = mu* np.ones((T.shape[0]))
-#     else:
-#         assert(mu.shape[0] == T.shape[0])
-#
-#     if U is None:
-#         U = V.copy() # assume at rest
-#
-#     if dim == 2:
-#         vol = igl.doublearea(V, T).reshape(-1)/2
-#     elif dim == 3:
-#         vol = igl.volume(V, T).reshape(-1)
-#     else:
-#         ValueError("Only V.shape[1] == 2 or 3 are supported")
-#
-#     J = deformation_jacobian(V, T)
-#     f = J @ U.flatten()
-#
-#     F = np.reshape(f, (-1, dim, dim))
-#     d2psidF2 = d2arap_dF2(F, mu=mu, a=vol)
-#     H = sp.sparse.block_diag(d2psidF2) # block diagonal hessian matrix
-#
-#
-#     Q = J.transpose() @ H @ J
-#     return Q
-#
-#

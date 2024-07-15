@@ -16,7 +16,17 @@ from ... import massmatrix
 
 
 from ..Sim import  *
-from .ElasticMFEMState import ElasticMFEMState
+from ..State import State
+
+class ElasticMFEMState(State):
+
+    def __init__(self, x, s, l, x_dot):
+        self.x = x
+        self.s = s
+        self.l = l
+        self.x_dot = x_dot
+        return
+
 
 
 class ElasticMFEMSimParams():
@@ -41,8 +51,8 @@ class ElasticMFEMSimParams():
         self.gamma = gamma
 
         self.f_ext = f_ext
-        self.Q = Q
-        self.b = b
+        self.Q0 = Q
+        self.b0 = b
 
         return
 
@@ -70,9 +80,8 @@ class ElasticMFEMSim(Sim):
         self.X = X
         self.T = T
         x = X.reshape(-1, 1)
-        self.x = x
-        self.x_dot = None
-        self.x0 = None
+
+
 
         M = massmatrix(self.X, self.T, rho=self.p.rho)
         self.M = M
@@ -90,22 +99,16 @@ class ElasticMFEMSim(Sim):
         self.nx = x.shape[0]
         self.ns = self.Ci.shape[0]
         
-        if p.Q is None:
+        if p.Q0 is None:
             self.Q = sp.sparse.csc_matrix((x.shape[0], x.shape[0]))
         else:
-            assert(p.Q.shape[0] == x.shape[0] and p.Q.shape[1] == x.shape[0])
-            self.Q = self.p.Q
-        if p.b is None:
+            assert(p.Q0.shape[0] == x.shape[0] and p.Q0.shape[1] == x.shape[0])
+            self.Q = self.p.Q0
+        if p.b0 is None:
             self.b = np.zeros((x.shape[0], 1))
         else:
-            assert(p.b.shape[0] == x.shape[0])
-            self.b = self.p.b.reshape(-1, 1)
-
-        if p.f_ext is None:
-            self.f_ext = np.zeros((x.shape[0], 1))
-        else:
-            assert(p.f_ext.shape[0] == x.shape[0])
-            self.f_ext = self.p.f_ext.reshape(-1, 1)
+            assert(p.b0.shape[0] == x.shape[0])
+            self.b = self.p.b0.reshape(-1, 1)
 
 
         # should also build the solver parameters
@@ -126,9 +129,10 @@ class ElasticMFEMSim(Sim):
 
         dim = self.dim
         x = p[:self.nx]
-        s = p[self.nx:self.nx + self.ns]
-      
-        S = (self.C @ s).reshape(-1, dim, dim)
+        s = p[self.nx:self.nx + self.ns ]
+        l = p[self.nx + self.ns:]
+
+        S = s.reshape(-1, dim * (dim + 1) // 2)
         F = (self.J @ x).reshape(-1, dim, dim)
         
         elastic = elastic_energy_S(S, self.mu, self.lam,  self.vol, self.p.material)
@@ -214,7 +218,29 @@ class ElasticMFEMSim(Sim):
         return H
 
 
-    def step(self, x : np.ndarray, s : np.ndarray, l : np.ndarray, x_dot : np.ndarray):
+    def dynamic_precomp(self, x : np.ndarray, x_dot : np.ndarray, Q_ext=None, b_ext=None):
+        """
+        Computation done once every timestep and never again
+        """
+        self.y = x + self.p.h * x_dot
+
+        # add to current Q_ext
+        if Q_ext is not None:
+            if self.p.Q0 is None:
+                self.Q = Q_ext
+            else:
+                self.Q = Q_ext + self.p.Q0
+
+        # same for b
+        if b_ext is not None:
+            if self.p.b0 is None:
+                self.b = b_ext
+            else:
+                self.b = b_ext + self.p.b0
+        
+        return
+
+    def step(self, x : np.ndarray, s : np.ndarray, l : np.ndarray, x_dot : np.ndarray, Q_ext=None, b_ext=None):
         """
         Steps the simulation forward in time.
 
@@ -231,9 +257,8 @@ class ElasticMFEMSim(Sim):
         x : (n*d, 1) numpy array
             Next positions of the pinned pendulum system
         """
-        self.y = x + self.p.h * x_dot
-    
-        # stack x y and z
+
+        self.dynamic_precomp(x, x_dot, Q_ext, b_ext)
 
         # Se = self.C @ se
         p = np.vstack([x, s, l])
@@ -242,29 +267,6 @@ class ElasticMFEMSim(Sim):
         s_next = p_next[self.nx:self.nx + self.ns]
         l_next = p_next[self.nx + self.ns:]
         return x_next, s_next, l_next
-
-
-    def step_sim(self, state : ElasticMFEMState ):
-        """
-        Steps the simulation forward in time.
-
-        Parameters
-        ----------
-
-        state : Elastic2DFEMState
-            state of the pinned pendulum system
-
-        Returns
-        ------
-        state : Elastic2DFEMState
-            next state of the pinned pendulum system
-
-        """
-        x_next, s_next, l_next = self.step(state.x, state.s, state.l,  state.x_dot)
-        x_dot = (x_next - state.x)/self.p.h
-        state = ElasticMFEMState(x_next, s_next, l_next, x_dot)
-        return state
-
 
 
 

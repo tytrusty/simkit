@@ -7,17 +7,17 @@ from simkit.sims.elastic import *
 from simkit.dirichlet_penalty import dirichlet_penalty
 from simkit.grad import grad
 from simkit.gravity_force import gravity_force
-from simkit.sims.elastic import ElasticMFEMSim, ElasticMFEMState
+from simkit.sims.elastic import ElasticMFEMSim
 from simkit.stretch import stretch
 from simkit.symmetric_stretch_map import symmetric_stretch_map
 
-# [X, _, _, T, _, _] = igl.read_obj("../data/2d/beam/beam.obj")
+[X, _, _, T, _, _] = igl.read_obj("./data/2d/beam/beam.obj")
 
 # [X, _, _, T, _, _] = igl.read_obj("../data/2d/bingby/bingby.obj")
 
 # [X, _, _, T, _, _] = igl.read_obj("../data/2d/T/T.obj")
 
-[X, _, _, T, _, _] = igl.read_obj("./data/2d/cthulu/cthulu.obj")
+# [X, _, _, T, _, _] = igl.read_obj("./data/2d/cthulu/cthulu.obj")
 
 X = X[:, 0:2]
 X = X / max(X.max(axis=0) - X.min(axis=0))
@@ -28,9 +28,9 @@ J = deformation_jacobian(X, T)
 dim = X.shape[1]
 F = (J @ x).reshape(-1, dim, dim)
 
-# C , Ci = symmetric_stretch_map(T.shape[0], dim)
-# s = (Ci @ stretch(F).reshape(-1, 1)).reshape(-1, 1)
-# l = np.zeros(s.shape)
+C , Ci = symmetric_stretch_map(T.shape[0], dim)
+s = (Ci @ stretch(F).reshape(-1, 1)).reshape(-1, 1)
+l = np.zeros(s.shape)
 x_dot = np.zeros(x.shape)
 
 rho = 1e3
@@ -39,20 +39,20 @@ bI =  np.where(X[:, 0] < 0.001 + X[:, 0].min())[0]
 bc0 = (X[bI, :])
 [Qp, bp] = dirichlet_penalty(bI, bc0, X.shape[0],  1e7)
 
-sim_params = ElasticFEMSimParams()
-# sim_params = ElasticMFEMSimParams()
+# sim_params = ElasticFEMSimParams()
+sim_params = ElasticMFEMSimParams()
 
 # sim_params.b = bg
 # sim_params.Q = Qp
-sim_params.ym = 1e6
+sim_params.ym = 0
 sim_params.h = 1e-2
 sim_params.rho = rho
 sim_params.solver_p.max_iter= 3
 sim_params.solver_p.do_line_search = True #True
 
 
-sim = ElasticFEMSim(X, T, sim_params)
-# sim = ElasticMFEMSim(X, T, sim_params)
+# sim = ElasticFEMSim(X, T, sim_params)
+sim = ElasticMFEMSim(X, T, sim_params)
 
 period = 100
 ps.init()
@@ -60,18 +60,20 @@ ps.set_ground_plane_mode("none")
 mesh = ps.register_surface_mesh("mesh", X, T, edge_width=1)
 for i in range(1000):
     bc = bc0 + np.sin( 2 * np.pi * i / (period)) * np.array([[1, 0]])
-    [Q_ext, b_ext] = dirichlet_penalty(bI, bc, X.shape[0],  1e10)
-    x_next = sim.step(x,  x_dot, Q_ext, b_ext + bg)
-    x_dot = (x_next - x) / sim_params.h    
-    x = x_next.copy()
-
-
-    # x_next, s_next, l_next = sim.step(x, s, l,  x_dot)
-    # x_dot = (x_next - x) / sim_params.h
-   
+    [Q_ext, b_ext] = dirichlet_penalty(bI, bc, X.shape[0],  0)
+    
+    
+    # x_next = sim.step(x,  x_dot, Q_ext, b_ext + bg)
+    # x_dot = (x_next - x) / sim_params.h    
     # x = x_next.copy()
-    # s = s_next.copy()
-    # l = l_next.copy()
+
+
+    x_next, s_next, l_next = sim.step(x, s, l,  x_dot, Q_ext, b_ext + bg)
+    x_dot = (x_next - x) / sim_params.h
+   
+    x = x_next.copy()
+    s = s_next.copy()
+    l = l_next.copy()
 
     mesh.update_vertex_positions(x.reshape(-1, 2))
     ps.frame_tick()

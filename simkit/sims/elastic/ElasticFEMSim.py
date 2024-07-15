@@ -15,7 +15,15 @@ from ... import massmatrix
 
 
 from ..Sim import  *
-from .ElasticFEMState import ElasticFEMState
+from ..State import State
+
+
+class ElasticFEMState(State):
+
+    def __init__(self, x, x_dot):
+        self.x = x
+        self.x_dot = x_dot
+        return
 
 
 class ElasticFEMSimParams():
@@ -23,6 +31,18 @@ class ElasticFEMSimParams():
                  solver_p : NewtonSolverParams  = NewtonSolverParams(), f_ext = None, Q=None, b=None):
         """
         Parameters of the pinned pendulum simulation
+
+
+        argmin_x  K(x) + V(x)  = L(x)
+
+
+
+        K(x) = 1/2 h^2 (x - y)^T M (x - y)
+        y = x_curr + h x_dot_curr
+
+        V(x) = 1/ 2 \sum_t  || F_t x_t - R ||^2
+
+
 
         Parameters
         ----------
@@ -196,31 +216,10 @@ class ElasticFEMSim(Sim):
         self.b = b_ext
         self.y = x + self.p.h * x_dot
         x0 = x.copy() # very important to copy this here so that x does not get over-written
+        
+        
         x_next = self.solver.solve(x0)
         return x_next
-
-
-    def step_sim(self, state : ElasticFEMState ):
-        """
-        Steps the simulation forward in time.
-
-        Parameters
-        ----------
-
-        state : Elastic2DFEMState
-            state of the pinned pendulum system
-
-        Returns
-        ------
-        state : Elastic2DFEMState
-            next state of the pinned pendulum system
-
-        """
-        x= self.step(state.x, state.x_dot)
-        x_dot = (x - state.x)/ self.p.h
-        state = ElasticFEMState(x, x_dot)
-        return state
-
 
 
 

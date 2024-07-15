@@ -19,7 +19,7 @@ from .kinetic_gradient import kinetic_gradient, kinetic_gradient_z
 from .kinetic_hessian import kinetic_hessian, kinetic_hessian_z
 
 from .stretch import stretch
-from .stretch_gradient import stretch_gradient_dx, stretch_gradient_dF, stretch_gradient
+from .stretch_gradient import stretch_gradient_dx, stretch_gradient_dF, stretch_gradient_dz
 
 from .deformation_jacobian import  deformation_jacobian
 from .selection_matrix import selection_matrix

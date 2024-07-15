@@ -23,8 +23,9 @@ def stretch_gradient_dF(F):
     return dSdF
 
 
-def stretch_gradient_dx(X, J, Ci=None):
-    dim = X.shape[1]
+def stretch_gradient_dx(X, J, Ci=None, dim=None):
+    if dim is None:
+        dim = X.shape[1]
     x = X.reshape(-1, 1)
     F = (J @ x).reshape(-1, dim, dim)
     dSdF = stretch_gradient(F).reshape(-1, dim * dim, dim * dim)
@@ -33,4 +34,10 @@ def stretch_gradient_dx(X, J, Ci=None):
 
     if Ci is not None:
         dsdx = dsdx @ Ci.T
+    return dsdx
+
+def stretch_gradient_dz(z, GJB, dim, Ci=None):
+    
+    dsdx = stretch_gradient_dx(z, GJB, Ci, dim)
+
     return dsdx

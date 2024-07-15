@@ -33,7 +33,7 @@ class NewtonSolver(Solver):
 
             # if sparse matrix
             if sp.sparse.issparse(H):
-                dx = sp.sparse.linalg.spsolve(H, -g).reshape(-1, 1)
+                dx = sp.sparse.linalg.spsolve(H.tocsc(), -g).reshape(-1, 1)
             else:
                 dx = sp.linalg.solve(H, -g).reshape(-1, 1)
 
@@ -48,3 +48,5 @@ class NewtonSolver(Solver):
                 break
 
         return x
+    
+

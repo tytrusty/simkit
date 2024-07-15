@@ -1,9 +1,8 @@
 
-from .ElasticFEMState import ElasticFEMState
-from .ElasticFEMSim import ElasticFEMSim, ElasticFEMSimParams
+from .ElasticFEMSim import ElasticFEMSim, ElasticFEMSimParams, ElasticFEMState
 
-from .ElasticMFEMState import ElasticMFEMState
-from .ElasticMFEMSim import ElasticMFEMSim, ElasticMFEMSimParams
+from .ElasticMFEMSim import ElasticMFEMSim, ElasticMFEMSimParams, ElasticMFEMState
 
-from .ElasticROMFEMSim import ElasticROMFEMSim, ElasticROMFEMSimParams
-from .ElasticROMFEMState import ElasticROMFEMState
+from .ElasticROMFEMSim import ElasticROMFEMSim, ElasticROMFEMSimParams, ElasticROMFEMState
+
+from .ElasticROMMFEMSim import ElasticROMMFEMSim, ElasticROMMFEMSimParams, ElasticROMMFEMState

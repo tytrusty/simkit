@@ -261,7 +261,7 @@ class ElasticMFEMSim(Sim):
         self.dynamic_precomp(x, x_dot, Q_ext, b_ext)
 
         # Se = self.C @ se
-        p = np.vstack([x, s, l])
+        p = np.vstack([x, s])
         p_next = self.solver.solve(p)
         x_next = p_next[:self.nx]
         s_next = p_next[self.nx:self.nx + self.ns]

@@ -61,7 +61,7 @@ GJB = Ge @ J @ B
 F = (GJB @ z).reshape(-1, dim, dim)
 C , Ci = symmetric_stretch_map(cI.shape[0], dim)
 a = (Ci @ stretch(F).reshape(-1, 1)).reshape(-1, 1)
-l = np.zeros(a.shape)
+# l = np.zeros(a.shape)
 z_dot = np.zeros(z.shape)
 
 rho = 1e3
@@ -96,11 +96,10 @@ for i in range(1000):
     # z_next = sim.step(z,  z_dot, BQB_ext, Bb_ext)
     # z = z_next.copy()
 
-    z_next, a_next, l_next = sim.step(z, a, l,  z_dot, Q_ext=BQB_ext, b_ext=Bb_ext)
+    z_next, a_next = sim.step(z, a,  z_dot, Q_ext=BQB_ext, b_ext=Bb_ext)
     z_dot = (z_next - z) / sim_params.h    
     z = z_next.copy()
     a = a_next.copy()
-    l = l_next.copy()
     
     x = B @ z
     

@@ -30,7 +30,6 @@ F = (J @ x).reshape(-1, dim, dim)
 
 C , Ci = symmetric_stretch_map(T.shape[0], dim)
 s = (Ci @ stretch(F).reshape(-1, 1)).reshape(-1, 1)
-l = np.zeros(s.shape)
 x_dot = np.zeros(x.shape)
 
 rho = 1e3
@@ -44,7 +43,7 @@ sim_params = ElasticMFEMSimParams()
 
 # sim_params.b = bg
 # sim_params.Q = Qp
-sim_params.ym = 0
+sim_params.ym = 1e7
 sim_params.h = 1e-2
 sim_params.rho = rho
 sim_params.solver_p.max_iter= 3
@@ -60,7 +59,7 @@ ps.set_ground_plane_mode("none")
 mesh = ps.register_surface_mesh("mesh", X, T, edge_width=1)
 for i in range(1000):
     bc = bc0 + np.sin( 2 * np.pi * i / (period)) * np.array([[1, 0]])
-    [Q_ext, b_ext] = dirichlet_penalty(bI, bc, X.shape[0],  0)
+    [Q_ext, b_ext] = dirichlet_penalty(bI, bc, X.shape[0],  1e8)
     
     
     # x_next = sim.step(x,  x_dot, Q_ext, b_ext + bg)
@@ -68,12 +67,11 @@ for i in range(1000):
     # x = x_next.copy()
 
 
-    x_next, s_next, l_next = sim.step(x, s, l,  x_dot, Q_ext, b_ext + bg)
+    x_next, s_next = sim.step(x, s,  x_dot, Q_ext, b_ext + bg)
     x_dot = (x_next - x) / sim_params.h
    
     x = x_next.copy()
     s = s_next.copy()
-    l = l_next.copy()
 
     mesh.update_vertex_positions(x.reshape(-1, 2))
     ps.frame_tick()

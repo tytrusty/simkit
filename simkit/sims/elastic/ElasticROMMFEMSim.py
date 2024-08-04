@@ -11,13 +11,17 @@ from ... import kinetic_energy_z, kinetic_gradient_z, kinetic_hessian_z, Kinetic
 from ... import stretch, stretch_gradient_dz
 from ... import volume
 from ... import massmatrix
+from ... import backtracking_line_search
+
 from ...project_into_subspace import project_into_subspace
 from ...symmetric_stretch_map import symmetric_stretch_map
 
 from ..Sim import  *
 from ..State import State
 
-class SQPMFEMSolverParams():
+from ...solvers.Solver import Solver, SolverParams
+
+class SQPMFEMSolverParams(SolverParams):
 
     def __init__(self, max_iter=100, tol=1e-6, verbose=False):
         self.max_iter = max_iter
@@ -27,58 +31,80 @@ class SQPMFEMSolverParams():
     
 class SQPMFEMSolver(Solver):
 
-    def __init__(self, energy_func, H_u_func,  H_z_func, G_u_func, G_zi_func,  f_u_func, f_z_func, f_l_func, p : SQPMFEMSolverParams = SQPMFEMSolverParams()):
-        self.p = p
+    def __init__(self, energy_func, hess_blocks_func, grad_blocks_func, params : SQPMFEMSolverParams = None):
+        """
+         SQP Solver for the MFEM System from https://www.dgp.toronto.edu/projects/subspace-mfem/ ,  Section 4.
+
+         The full system looks like:
+            [Hu    0    Gu] [du]   - [fu]
+            [0     Hz   Gz] [dz] = - [fz]
+            [Gz.T  0     0] [mu]   - [fmu]
+
+        Where Gz is diagonal and easily invertible. Using this fact, we can rewrite the system into a small solve and a matrix mult
+
+        (Hu + Gu Gz^-1 Hz Gz^-1 Gu.T) du = -fu + Gu Gz^-1 fz - Gu Gz^-1 Hz Gz^-1 fmu
+        dz = -Gz^-1 (fz + Hz du)
+
+        Parameters
+        ----------
+        energy_func : function
+            Energy function to minimize
+        hess_blocks_func : function
+            Function that returns the important blocks of the hessian: Hu, Hz, Gu, Gzi
+        grad_blocks_func : function
+            Function that returns the blocks of the gradient: fu, fz, fmu
+        params : SQPMFEMSolverParams
+            Parameters for the solver
+
+        """
+
+        if params is None:
+            params = SQPMFEMSolverParams()
+        self.params = params
         self.energy_func = energy_func
 
+        self.hess_blocks_func = hess_blocks_func
+        self.grad_blocks_func = grad_blocks_func
         return
 
-
     
-    def solve(self, x0):
+    def solve(self, p0):
         
-        x = x0.copy()
-        for i in range(self.p.max_iter):
+        p = p0.copy()
+        for i in range(self.params.max_iter):
+
+            [H_u, H_z, G_u, G_zi] = self.hess_blocks_func(p)            
             
+            [f_u, f_z, f_mu] = self.grad_blocks_func(p)
+
             #form K
             K = G_u @ G_zi @ H_z @ G_zi @ G_u.T 
-            # form Q
-            Q + H_u + K
+            Q = H_u + K
+
             # form g_u
-            g_u = -f_u + G_t.T @ G_zi (f_z - H_z @ G_zi @ f_l)
-
-            du = np.linalg.solve(Q, g_u)
-
-            dl = - G_zi.T @ (f_z + H_z @ d_z)
-
-
+            g_u = -f_u + G_u @ G_zi @ (f_z - H_z @ G_zi @ f_mu)
+            du = sp.sparse.linalg.spsolve(Q, g_u)
+            if du.ndim == 1:
+                du = du.reshape(-1, 1)
             
-            # dx =
-            # ds = 
-            # dl = 
 
-            # g = self.gradient_func(x)
-            # H = self.hessian_func(x)
+            g_z = - (f_mu + G_u.T @ du)
+            dz = G_zi @ g_z
 
-            # # if sparse matrix
-            # if sp.sparse.issparse(H):
-            #     dx = sp.sparse.linalg.spsolve(H.tocsc(), -g).reshape(-1, 1)
-            # else:
-            #     dx = sp.linalg.solve(H, -g).reshape(-1, 1)
-
-            if self.p.do_line_search:
+            g = np.vstack([f_u, f_z])
+            dp = np.vstack([du, dz])
+            if self.params.do_line_search:
                 energy_func = lambda z: self.energy_func(z)
-                alpha, lx, ex = backtracking_line_search(energy_func, x, g, dx)
+                alpha, lx, ex = backtracking_line_search(energy_func, p, g, dp)
             else:
                 alpha = 1.0
 
-            x += alpha * dx
+            p += alpha * dp
             if np.linalg.norm(g) < 1e-4:
                 break
 
-        return x
+        return p
     
-
 
 class ElasticROMMFEMState(State):
 
@@ -92,7 +118,7 @@ class ElasticROMMFEMState(State):
 
 class ElasticROMMFEMSimParams():
     def __init__(self, rho=1, h=1e-2, ym=1, pr=0,  material='arap', gamma=1,
-                 solver_p : NewtonSolverParams  = NewtonSolverParams(), Q0=None, b0=None):
+                 solver_p : SQPMFEMSolverParams  = None, Q0=None, b0=None):
         """
         Parameters of the pinned pendulum simulation
 
@@ -105,6 +131,9 @@ class ElasticROMMFEMSimParams():
         self.ym = ym
         self.pr = pr
         self.material = material
+
+        if solver_p is None:
+            solver_p = SQPMFEMSolverParams()
         self.solver_p = solver_p
         self.Q0 = Q0
         self.b0 = b0
@@ -155,6 +184,8 @@ class ElasticROMMFEMSim(Sim):
         # should also build the solver parameters
         if isinstance(p.solver_p, NewtonSolverParams):
             self.solver = NewtonSolver(self.energy, self.gradient, self.hessian, p.solver_p)
+        elif isinstance(p.solver_p, SQPMFEMSolverParams):
+            self.solver = SQPMFEMSolver(self.energy, self.hessian_blocks, self.gradient_blocks, p.solver_p)
         else:
             # print error message and terminate programme
             assert(False, "Error: solver_p of type " + str(type(p.solver_p)) +
@@ -216,11 +247,12 @@ class ElasticROMMFEMSim(Sim):
                 self.b = b_ext
             else:
                 self.b = b_ext + self.p.b0
+
                 
     def energy(self, p : np.ndarray):
         dim = self.dim
 
-        z, a, l = self.z_a_l_from_p(p)
+        z, a = self.z_a_from_p(p)
 
         A = a.reshape(-1, dim * (dim + 1) // 2)
         F = (self.GJB @ z).reshape(-1, dim, dim) # deformation gradient at cubature tets
@@ -240,16 +272,15 @@ class ElasticROMMFEMSim(Sim):
     def gradient(self, p : np.ndarray):
         dim = self.dim
 
-        z, a, l = self.z_a_l_from_p(p)
+        z, a = self.z_a_from_p(p)
 
         F = (self.GJB @ z).reshape(-1, dim, dim)
         A = a.reshape(-1, dim * (dim + 1) // 2)
        
         g_x = kinetic_gradient_z(z, self.y, self.p.h, self.kin_pre) \
-                + quadratic_gradient(z, self.Q, self.b) \
-                + stretch_gradient_dz(z, self.GJB, Ci=self.Ci, dim=dim)  @ l 
+                + quadratic_gradient(z, self.Q, self.b) 
         
-        g_s =  elastic_gradient_dS(A,  self.mu, self.lam, self.vol, self.p.material) - l 
+        g_s =  elastic_gradient_dS(A,  self.mu, self.lam, self.vol, self.p.material)
     
         g_l =    (self.Ci @ stretch(F) - a)
     
@@ -259,7 +290,8 @@ class ElasticROMMFEMSim(Sim):
 
     def hessian(self, p : np.ndarray):
         dim = self.dim
-        z, a, l = self.z_a_l_from_p(p)
+        z, a = self.z_a_from_p(p)
+
         # F = (self.GJ @ z).reshape(-1, dim, dim)
         A = a.reshape(-1, dim * (dim + 1) // 2)
 
@@ -281,30 +313,58 @@ class ElasticROMMFEMSim(Sim):
                             [H_xl.T,  H_sl, H_ll]])
         # H = H.toarray()
         return H
-
     
-    def step(self, z : np.ndarray, a : np.ndarray, l : np.ndarray,  z_dot : np.ndarray, Q_ext=None, b_ext=None):
+
+    def hessian_blocks(self, p : np.ndarray):
+        dim = self.dim
+        z, a = self.z_a_from_p(p)
+        # F = (self.GJ @ z).reshape(-1, dim, dim)
+        A = a.reshape(-1, dim * (dim + 1) // 2)
+
+        H_x = kinetic_hessian_z(self.p.h, self.kin_pre)+ \
+            quadratic_hessian(self.Q)
+        
+        G_x = stretch_gradient_dz(z, self.GJB, Ci=self.Ci, dim=dim) 
+
+        H_s =  elastic_hessian_d2S(A, self.mu, self.lam, self.vol, self.p.material) 
+    
+        G_s = -sp.sparse.identity(a.shape[0])
+        G_si = G_s 
+
+        return H_x, H_s, G_x, G_si
+    
+    def gradient_blocks(self, p : np.ndarray):
+        dim = self.dim
+        z, a = self.z_a_from_p(p)
+        F = (self.GJB @ z).reshape(-1, dim, dim)
+        A = a.reshape(-1, dim * (dim + 1) // 2)
+        g_x = kinetic_gradient_z(z, self.y, self.p.h, self.kin_pre) \
+                + quadratic_gradient(z, self.Q, self.b) 
+        g_s =  elastic_gradient_dS(A,  self.mu, self.lam, self.vol, self.p.material)
+        g_mu = (self.Ci @ stretch(F) - a)
+        return g_x, g_s, g_mu
+    
+    def step(self, z : np.ndarray, a : np.ndarray,  z_dot : np.ndarray, Q_ext=None, b_ext=None):
     
         # call this to set up inertia forces that change each timestep.
         self.dynamic_precomp(z, z_dot, Q_ext, b_ext)
 
 
-        p = np.vstack([z, a, l])
+        p = np.vstack([z, a])
 
         p = self.solver.solve(p)
         
-        z, a, l = self.z_a_l_from_p(p)
-        return z, a, l
+        z, a = self.z_a_from_p(p)
+        return z, a
 
 
-    def z_a_l_from_p( self, p):
+    def z_a_from_p( self, p):
         z = p[:self.nz]
         a = p[self.nz:self.nz + self.na]
-        l = p[self.nz + self.na:]
-        return z, a, l
+        return z, a
     
-    def p_from_z_c_l(self, z, a, l):
-        return np.concatenate([z, a, l])
+    def p_from_z_c(self, z, a):
+        return np.concatenate([z, a])
 
 
 

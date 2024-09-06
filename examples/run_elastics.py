@@ -66,7 +66,6 @@ for i in range(1000):
     # x_dot = (x_next - x) / sim_params.h    
     # x = x_next.copy()
 
-
     x_next, s_next = sim.step(x, s,  x_dot, Q_ext, b_ext + bg)
     x_dot = (x_next - x) / sim_params.h
    

@@ -23,9 +23,11 @@ from simkit.volume import volume
 from simkit.project_into_subspace import project_into_subspace
 
 
-[X, _, _, T, _, _] = igl.read_obj("./data/2d/cthulu/cthulu.obj")
+# [X, _, _, T, _, _] = igl.read_obj("./data/2d/cthulu/cthulu.obj")
+# X = X[:, 0:2]
 
-X = X[:, 0:2]
+
+
 X = X / max(X.max(axis=0) - X.min(axis=0))
 
 dim = X.shape[1]

@@ -23,4 +23,5 @@ def dirichlet_laplacian(X, T, mu=1, vector=False):
         for i in range(dim):
             Ii = np.arange(n)*dim + i
             L = L + H[Ii, :][:, Ii]
+        L = L / dim
     return L

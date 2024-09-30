@@ -23,7 +23,7 @@ from .stretch_gradient import stretch_gradient_dx, stretch_gradient_dF, stretch_
 
 from .deformation_jacobian import  deformation_jacobian
 from .selection_matrix import selection_matrix
-
+from .symmetric_stretch_map import symmetric_stretch_map
 
 from .massmatrix import massmatrix
 from .dirichlet_penalty import dirichlet_penalty
@@ -31,3 +31,13 @@ from .dirichlet_penalty import dirichlet_penalty
 from .grad import grad
 from .volume import volume
 
+from .project_into_subspace import project_into_subspace
+
+
+from .contact_springs_plane_energy import contact_springs_plane_energy
+from .contact_springs_plane_gradient import contact_springs_plane_gradient 
+from .contact_springs_plane_hessian import contact_springs_plane_hessian
+
+from. contact_springs_sphere_energy import contact_springs_sphere_energy
+from .contact_springs_sphere_gradient import contact_springs_sphere_gradient
+from .contact_springs_sphere_hessian import contact_springs_sphere_hessian

@@ -2,12 +2,12 @@ import igl
 import numpy as np
 import scipy as sp
 
-from simkit import deformation_jacobian, quadratic_hessian
 
 from ...solvers import NewtonSolver, NewtonSolverParams
 from ... import ympr_to_lame
 from ... import elastic_energy_x, elastic_gradient_dx, elastic_hessian_d2x
 from ... import quadratic_energy, quadratic_gradient, quadratic_hessian
+from ... import deformation_jacobian
 from ... import kinetic_energy, kinetic_gradient, kinetic_hessian
 from ... import volume
 

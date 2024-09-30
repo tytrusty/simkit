@@ -40,6 +40,9 @@ def deformation_jacobian(X : np.array, T : np.array):
     nt = T.shape[0]    
     dim = X.shape[1]
 
+    if dim == 1:
+        H = np.array([[-1],
+                    [1]])
     if dim == 2:
         H = np.array([[-1, -1],
                         [1, 0],

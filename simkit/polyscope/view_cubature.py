@@ -17,10 +17,11 @@ def view_cubature(X, T, cI, cW=None, labels=None):
     if labels is not None:
         mesh.add_scalar_quantity("labels", labels, defined_on='faces', cmap='rainbow', enabled=True)
 
-    points.add_scalar_quantity("cW", cW)
+    if cW is not None:
+        points.add_scalar_quantity("cW", cW)
 
-    # Set the quantity as the point size
-    points.set_point_radius_quantity("cW")
+        # Set the quantity as the point size
+        points.set_point_radius_quantity("cW")
 
 
     

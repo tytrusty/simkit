@@ -1,4 +1,6 @@
 import igl
+
+from .edge_lengths import edge_lengths
 def volume(V, F):
     """
     Compute the volume of a simplex defined with nodes V and faces F.
@@ -13,11 +15,12 @@ def volume(V, F):
     dim = V.shape[1]
 
     t = F.shape[1]
+
     if t == 2:
-        vol = igl.edge_lengths(V, F).reshape(-1, 1)
+        vol = edge_lengths(V, F).reshape(-1, 1)
     if t == 3:
         vol = igl.doublearea(V, F).reshape(-1, 1) / 2
-    elif dim == 4:
+    elif t == 4:
         vol = igl.volume(V, F).reshape(-1, 1)
     else:
         ValueError("Only F.shape[1] == 2, 3 or 4 are supported")

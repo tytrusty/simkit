@@ -18,6 +18,9 @@ def project_into_subspace(y, B, M=None, BMB=None, BMy=None):
         BMB = B.T @ M @ B
 
 
-    z = np.linalg.solve(BMB, BMy)
+    if sp.sparse.issparse(BMB):
+        z = sp.sparse.linalg.spsolve(BMB, BMy).reshape(-1, 1)
+    else:
+        z = np.linalg.solve(BMB, BMy).reshape(-1, 1)
 
     return z

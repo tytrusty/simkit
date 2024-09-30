@@ -1,7 +1,7 @@
 import scipy as sp
 import numpy as np
 
-def dirichlet_penalty(bI, y, nv,  gamma):
+def dirichlet_penalty(bI, y, nv,  gamma, only_b=False, SGamma=None, return_SGamma=False):
     """
     Determines a quadratic pinning penalty objective to hold vertex indices bI of mesh V, T
     fixed in place.
@@ -30,24 +30,37 @@ def dirichlet_penalty(bI, y, nv,  gamma):
         Linear term vector
     """
 
-    nc = bI.shape[0]
-    S = sp.sparse.csc_matrix((  np.ones(nc), (bI, np.arange(nc))) , (nv, nc) )
-    d = y.shape[1]
+    assert(y.ndim == 2)
+    if SGamma is None:
+        nc = bI.shape[0]
+        S = sp.sparse.csc_matrix((  np.ones(nc), (bI, np.arange(nc))) , (nv, nc) )
+        d = y.shape[1]
 
-    S = sp.sparse.kron(S, sp.sparse.eye(d))
-    cn = bI.shape[0]
+        S = sp.sparse.kron(S, sp.sparse.eye(d))
+        cn = bI.shape[0]
 
-    if isinstance(gamma, float) or isinstance(gamma, int):
-        gamma = np.ones(cn) * gamma
-
-
-    Gamma = sp.sparse.diags(gamma).tocsc()
-    Gamma = sp.sparse.kron(Gamma, sp.sparse.identity(d))
-    Q = S @ Gamma @ S.T
+        if isinstance(gamma, float) or isinstance(gamma, int):
+            gamma = np.ones(cn) * gamma
 
 
-    b = -S @ Gamma @ y.reshape(-1, 1)
-    return Q, b
+        Gamma = sp.sparse.diags(gamma).tocsc()
+        Gamma = sp.sparse.kron(Gamma, sp.sparse.identity(d))
+
+        SGamma = S @ Gamma
+
+
+
+    b = -SGamma @ y.reshape(-1, 1)
+   
+    if only_b:
+        out = (b, )
+    else:
+        Q = SGamma @ S.T
+        out = (Q, b)
+    
+    if return_SGamma:
+        out = out + (SGamma,)
+    return out 
 
 
 

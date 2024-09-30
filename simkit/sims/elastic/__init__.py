@@ -5,4 +5,4 @@ from .ElasticMFEMSim import ElasticMFEMSim, ElasticMFEMSimParams, ElasticMFEMSta
 
 from .ElasticROMFEMSim import ElasticROMFEMSim, ElasticROMFEMSimParams, ElasticROMFEMState
 
-from .ElasticROMMFEMSim import ElasticROMMFEMSim, ElasticROMMFEMSimParams, ElasticROMMFEMState
+from .ElasticROMMFEMSim import ElasticROMMFEMSim, ElasticROMMFEMSimParams, ElasticROMMFEMState, SQPMFEMSolverParams

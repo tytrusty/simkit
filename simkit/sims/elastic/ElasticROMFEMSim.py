@@ -1,7 +1,6 @@
 import igl
 import numpy as np
 import scipy as sp
-from simkit import deformation_jacobian, project_into_subspace, quadratic_hessian, selection_matrix
 
 from ...solvers import NewtonSolver, NewtonSolverParams
 from ... import ympr_to_lame
@@ -10,7 +9,8 @@ from ... import quadratic_energy, quadratic_gradient, quadratic_hessian
 from ... import kinetic_energy_z, kinetic_gradient_z, kinetic_hessian_z, KineticEnergyZPrecomp
 from ... import volume
 from ... import massmatrix
-from ...project_into_subspace import project_into_subspace
+from ... import deformation_jacobian, quadratic_hessian, selection_matrix
+
 
 
 from ..Sim import  *
@@ -94,7 +94,7 @@ class ElasticROMFEMSim(Sim):
             self.b = None 
         else:
             assert(p.b0.shape[0] == B.shape[-1])
-            self.b0 = self.p.b0.reshape(-1, 1)
+            self.b = self.p.b0.reshape(-1, 1)
 
 
         # should also build the solver parameters

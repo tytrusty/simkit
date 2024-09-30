@@ -2,11 +2,9 @@ import igl
 import numpy as np
 import scipy as sp
 
-from simkit import deformation_jacobian, quadratic_hessian
-from simkit.solvers.SQPMFEMSolver import SQPMFEMSolver, SQPMFEMSolverParams
-from simkit.symmetric_stretch_map import symmetric_stretch_map
 
 from ...solvers import NewtonSolver, NewtonSolverParams
+from ... import symmetric_stretch_map
 from ... import ympr_to_lame
 from ... import stretch, stretch_gradient_dx
 from ... import elastic_energy_S, elastic_gradient_dS, elastic_hessian_d2S
@@ -14,6 +12,7 @@ from ... import quadratic_energy, quadratic_gradient, quadratic_hessian
 from ... import kinetic_energy, kinetic_gradient, kinetic_hessian
 from ... import volume
 from ... import massmatrix
+from ... import deformation_jacobian
 
 
 from ..Sim import  *
@@ -24,8 +23,10 @@ class ElasticMFEMState(State):
     def __init__(self, x, s, l, x_dot):
         self.x = x
         self.s = s
+        self.l = l
         self.x_dot = x_dot
         return
+
 
 
 class ElasticMFEMSimParams():
@@ -113,8 +114,6 @@ class ElasticMFEMSim(Sim):
         # should also build the solver parameters
         if isinstance(p.solver_p, NewtonSolverParams):
             self.solver = NewtonSolver(self.energy, self.gradient, self.hessian, p.solver_p)
-        elif isinstance(p.solver_p, SQPMFEMSolverParams):
-            self.solver = SQPMFEMSolver(self.energy, self.hessian_blocks, self.gradient_blocks, p.solver_p)
         else:
             # print error message and terminate programme
             assert(False, "Error: solver_p of type " + str(type(p.solver_p)) +
@@ -131,7 +130,7 @@ class ElasticMFEMSim(Sim):
         dim = self.dim
         x = p[:self.nx]
         s = p[self.nx:self.nx + self.ns ]
-
+        l = p[self.nx + self.ns:]
 
         S = s.reshape(-1, dim * (dim + 1) // 2)
         F = (self.J @ x).reshape(-1, dim, dim)
@@ -157,51 +156,26 @@ class ElasticMFEMSim(Sim):
         g_s = dE_elastic/ds - l
         g_l = s(x) - s
         """
-        g_x, g_s, g_l = self.gradient_blocks(p)
-        g = np.vstack([g_x, g_s, g_l])
-        return g
 
-    def gradient_blocks(self, p):
         dim = self.dim
         x = p[:self.nx]
         s = p[self.nx:self.nx + self.ns ]
-
-        F = (self.J @ x).reshape(-1, dim, dim)
-        S = s.reshape(-1, dim * (dim + 1) // 2)
-        
-        g_x = kinetic_gradient(x, self.y, self.Mv, self.p.h) \
-                + quadratic_gradient(x, self.Q, self.b)
-                # + stretch_gradient_dx(X, self.J, Ci=self.Ci)  @ l 
-        
-        g_s =  elastic_gradient_dS(S,  self.mu, self.lam, self.vol, self.p.material) #- l 
-    
-        g_l =   (self.Ci @ stretch(F) - s)
-
-        return g_x, g_s, g_l
-
-    def hessian_blocks(self, p):
-        dim = self.dim
-        x = p[:self.nx]
-        s = p[self.nx:self.nx + self.ns ]
+        l = p[self.nx + self.ns:]
 
         F = (self.J @ x).reshape(-1, dim, dim)
         S = s.reshape(-1, dim * (dim + 1) // 2)
         X = x.reshape(-1, dim)
 
-        H_xx = kinetic_hessian(self.Mv, self.p.h)+ \
-            quadratic_hessian(self.Q)
-
-  
-        H_xl = stretch_gradient_dx(X, self.J, Ci=self.Ci) 
-
-        H_ss =  elastic_hessian_d2S(S, self.mu, self.lam, self.vol, self.p.material) 
+        g_x = kinetic_gradient(x, self.y, self.Mv, self.p.h) \
+                + quadratic_gradient(x, self.Q, self.b) \
+                + stretch_gradient_dx(X, self.J, Ci=self.Ci)  @ l 
+        
+        g_s =  elastic_gradient_dS(S,  self.mu, self.lam, self.vol, self.p.material) - l 
     
-        H_sl = -sp.sparse.identity(s.shape[0])
-
-        H_sli = H_sl.copy()
-
-        return H_xx, H_ss, H_xl,  H_sl, H_sli
-
+        g_l =    (self.Ci @ stretch(F) - s)
+    
+        g = np.vstack([g_x, g_s, g_l])
+        return g
 
     def hessian(self, p : np.ndarray):
         """
@@ -216,21 +190,32 @@ class ElasticMFEMSim(Sim):
         H_sl = H_ls = -I
         H_ll = 0 
         """
+        dim = self.dim
         x = p[:self.nx]
         s = p[self.nx:self.nx + self.ns]
-    
-        H_xx, H_ss, H_xl, H_sl, _H_sli = self.hessian_blocks(p)
+     
+        S = (s).reshape(-1, dim * (dim + 1) // 2)
+
+        dim = self.dim
+        H_xx = kinetic_hessian(self.Mv, self.p.h)+ \
+            quadratic_hessian(self.Q)
 
         H_xs = sp.sparse.csc_matrix((x.shape[0], s.shape[0])) 
+
+        H_xl = stretch_gradient_dx(x.reshape(-1, self.dim), self.J, Ci=self.Ci) 
+
+        H_ss =  elastic_hessian_d2S(S, self.mu, self.lam, self.vol, self.p.material) 
+    
+        H_sl = -sp.sparse.identity(s.shape[0])
+
         H_ll =  sp.sparse.csc_matrix((s.shape[0], s.shape[0])) 
 
         H = sp.sparse.bmat([[H_xx,    H_xs,   H_xl], 
                             [H_xs.T,  H_ss,   H_sl], 
                             [H_xl.T,  H_sl, H_ll]])
-        return H
-    
 
-    
+
+        return H
 
 
     def dynamic_precomp(self, x : np.ndarray, x_dot : np.ndarray, Q_ext=None, b_ext=None):
@@ -255,7 +240,7 @@ class ElasticMFEMSim(Sim):
         
         return
 
-    def step(self, x : np.ndarray, s : np.ndarray,  x_dot : np.ndarray, Q_ext=None, b_ext=None):
+    def step(self, x : np.ndarray, s : np.ndarray, l : np.ndarray, x_dot : np.ndarray, Q_ext=None, b_ext=None):
         """
         Steps the simulation forward in time.
 
@@ -276,12 +261,12 @@ class ElasticMFEMSim(Sim):
         self.dynamic_precomp(x, x_dot, Q_ext, b_ext)
 
         # Se = self.C @ se
-        l = np.zeros(s.shape)
-        p = np.vstack([x, s, l])
+        p = np.vstack([x, s])
         p_next = self.solver.solve(p)
         x_next = p_next[:self.nx]
         s_next = p_next[self.nx:self.nx + self.ns]
-        return x_next, s_next
+        l_next = p_next[self.nx + self.ns:]
+        return x_next, s_next, l_next
 
 
 

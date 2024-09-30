@@ -27,10 +27,8 @@ def massmatrix(X, T, rho : None | float | np.ndarray = 1):
     # deposit the mass into the global mass matrix
     Av_t = vertex_to_simplex_adjacency(T, X.shape[0])
 
-    vv = ( Av_t @ m )/ 3
+    vv = ( Av_t @ m )/ T.shape[1]
 
 
-    M = sp.sparse.diags(vv.flatten())
-
-    M = igl.massmatrix(X, T) * rho
+    M = sp.sparse.diags(vv.flatten()) * rho
     return M

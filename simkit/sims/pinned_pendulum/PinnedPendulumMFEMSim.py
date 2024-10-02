@@ -1,11 +1,9 @@
 import numpy as np
 from numpy import vstack, hstack
 
-from .PinnedPendulumFEMSim import *
-from ...solvers import NewtonSolver, NewtonSolverParams
-from .PinnedPendulumMFEMState import PinnedPendulumMFEMState
+from ...solvers import  NewtonSolverParams, NewtonSolver
 
-class PinnedPendulumMFEMSimParams(PinnedPendulumFEMSimParams):
+class PinnedPendulumMFEMSimParams():
     def __init__(self, m=1, l0=1, mu=1, g=0, gamma=1, y=np.array([[0], [-1]]),
                  solver_p : NewtonSolverParams  = NewtonSolverParams(),eta=1):
         """
@@ -28,12 +26,17 @@ class PinnedPendulumMFEMSimParams(PinnedPendulumFEMSimParams):
         eta : float
             Coefficient of the constraint term in the merit function
         """
-        super().__init__(m, l0, mu, g, gamma, y, solver_p)
-
+        self.m = m
+        self.l0 = l0
+        self.mu = mu
+        self.g = g
+        self.gamma = gamma
+        self.y = y
+        self.solver_p = solver_p
         self.eta = eta
 
         return
-class PinnedPendulumMFEMSim(PinnedPendulumFEMSim):
+class PinnedPendulumMFEMSim():
 
     def __init__(self, p : PinnedPendulumMFEMSimParams = PinnedPendulumMFEMSimParams()):
         """
@@ -45,7 +48,10 @@ class PinnedPendulumMFEMSim(PinnedPendulumFEMSim):
         p : PinnedPendulumMFEMSimParams
             Parameters of the pinned pendulum system
         """
-        super().__init__(p)
+        self.p = p
+
+        self.solver = NewtonSolver(self.energy, self.gradient, self.hessian, p.solver_p)
+        
         return
 
     def energy(self, p):
@@ -130,9 +136,9 @@ class PinnedPendulumMFEMSim(PinnedPendulumFEMSim):
         H = vstack([hstack([self.p.gamma * np.identity(2), z21, pdir]),
                     hstack([z21.T, self.p.mu * np.identity(1), -np.identity(1)]),
                     hstack([pdir.T, -np.identity(1), np.array([[0]])])])
-
         return H
-    def step(self, p : np.ndarray):
+
+    def step(self, x: np.ndarray, s: np.ndarray, l: np.ndarray):
         """
         Steps the simulation forward in time.
 
@@ -146,32 +152,20 @@ class PinnedPendulumMFEMSim(PinnedPendulumFEMSim):
         p : (4, 1) numpy array
             Nept raw state (free endpoint's 2D position) of the pinned pendulum system
         """
-        p = self.solver.solve(p)
-        return p
+        p = np.vstack([x, s, l])
+        p0 = p.copy()
+        p_next = self.solver.solve(p0)
+
+        x = p_next[:2]
+        s = p_next[2]
+        l = p_next[3]
+
+        return x, s, l
 
 
-    def step_sim(self, state : PinnedPendulumMFEMState = PinnedPendulumMFEMState()):
-        """
-        Steps the simulation forward in time.
-
-        Parameters
-        ----------
-
-        state : PinnedPendulumMFEMState
-            state of the pinned pendulum system
-
-        Returns
-        ------
-        state : PinnedPendulumMFEMState
-            nept state of the pinned pendulum system
-
-        """
-        p = self.step(state.p)
-        state = PinnedPendulumMFEMState(p)
-        return state
-
-
-
-
-
+    def rest_state(self):
+        x =  np.array([1., 0])[:, None]
+        s = np.array([1.])
+        l = np.array([0.])
+        return x, s, l
 

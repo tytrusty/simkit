@@ -25,7 +25,7 @@ class umfpack_LU_LinearOperator(LinearOperator):
         # bc = cvxopt.matrix(b)
         # cvxopt.umfpack.linsolve(Ac, bc)
         # cnp = np.array(bc)
-        super(umfpack_LU_LinearOperator, self).__init__( A.dtype ,A.shape)
+        super(umfpack_LU_LinearOperator, self).__init__(A.dtype, A.shape)
 
     def _matvec(self, v):
         b = cvxopt.matrix(v)

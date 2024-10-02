@@ -3,7 +3,6 @@ import numpy as np
 
 from ..Sim import  *
 from ...solvers import NewtonSolver, NewtonSolverParams
-from .PinnedPendulumFEMState import PinnedPendulumFEMState
 
 class PinnedPendulumFEMSimParams():
     def __init__(self, m=1, l0=1, mu=1, g=0, gamma=1, y=np.array([[0], [-1]]),
@@ -34,7 +33,7 @@ class PinnedPendulumFEMSimParams():
         self.y = y
         self.solver_p = solver_p
         return
-class PinnedPendulumFEMSim(Sim):
+class PinnedPendulumFEMSim():
 
     def __init__(self, p : PinnedPendulumFEMSimParams = PinnedPendulumFEMSimParams()):
         """
@@ -49,12 +48,7 @@ class PinnedPendulumFEMSim(Sim):
         self.p = p
 
         # should also build the solver parameters
-        if isinstance(p.solver_p, NewtonSolverParams):
-            self.solver = NewtonSolver(self.energy, self.gradient, self.hessian, p.solver_p)
-        else:
-            # print error message and terminate programme
-            assert(False, "Error: solver_p of type " + str(type(p.solver_p)) +
-                          " is not a valid instance of NewtonSolverParams. Exiting.")
+        self.solver = NewtonSolver(self.energy, self.gradient, self.hessian, p.solver_p)
         return
 
 
@@ -143,26 +137,10 @@ class PinnedPendulumFEMSim(Sim):
         return x
 
 
-    def step_sim(self, state : PinnedPendulumFEMState = PinnedPendulumFEMState()):
-        """
-        Steps the simulation forward in time.
 
-        Parameters
-        ----------
-
-        state : PinnedPendulumFEMState
-            state of the pinned pendulum system
-
-        Returns
-        ------
-        state : PinnedPendulumFEMState
-            next state of the pinned pendulum system
-
-        """
-        x = self.step(state.x)
-        state = PinnedPendulumFEMState(x)
-        return state
-
+    def rest_state(self):
+        x =  np.array([[1.], [0]])
+        return x
 
 
 

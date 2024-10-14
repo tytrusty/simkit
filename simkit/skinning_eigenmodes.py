@@ -11,8 +11,8 @@ import igl
 def skinning_eigenmodes(X, T, k, mu=1, bI=None, Aeq=None):
 
     M = massmatrix(X, T)
-    # L = dirichlet_laplacian(X, T, mu=mu)
-    L = igl.cotmatrix(X, T)
+    L = dirichlet_laplacian(X, T, mu=mu)
+    # L = igl.cotmatrix(X, T)
     if bI is not None:
         assert(isinstance(bI, np.ndarray))
         Ii = np.setdiff1d(np.arange(X.shape[0]), bI)

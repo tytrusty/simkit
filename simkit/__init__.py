@@ -23,3 +23,7 @@ from .volume import volume
 from .deformation_jacobian import deformation_jacobian
 from .polar_svd import polar_svd
 from .rotation_gradient import rotation_gradient_F
+from .skinning_eigenmodes import skinning_eigenmodes
+from .spectral_cubature import spectral_cubature
+from .gravity_force import gravity_force
+from .cluster_grouping_matrices import cluster_grouping_matrices
